@@ -1,0 +1,23 @@
+import { IsNotEmpty, IsOptional } from "class-validator";
+
+export class AddCardDTO {
+    @IsNotEmpty({ message: "If front_text, can't be null"})
+    front_text: string
+
+    @IsOptional()
+    @IsNotEmpty({ message: "If back_text, can't be null"})
+    back_text?: string
+
+    @IsOptional()
+    @IsNotEmpty({ message: "If example, can't be null"})
+    example?: string
+
+    @IsOptional()
+    @IsNotEmpty({ message: "if topic_id, can't be null"})
+    topic_id: number
+}
+
+export class NewMeaningDTO {
+    @IsNotEmpty({ message: "If front_text, can't be null"})
+    front_text: string
+}

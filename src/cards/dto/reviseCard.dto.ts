@@ -1,0 +1,22 @@
+import { IsNotEmpty, IsOptional, Validate } from "class-validator";
+import { AtLeastOneFieldDefined } from "../validator/at-least-one-field.validator";
+
+// @AtLeastOneFieldDefined({ message: 'Phải cung cấp ít nhất một trường: front_text, back_text, hoặc example' })
+export class ReviseCardDTO {
+
+    @IsNotEmpty({ message: 'card_id is required' })
+    card_id: number;
+
+    // @IsOptional()
+    @IsNotEmpty({ message: "Topic id is required"})
+    front_text: string
+
+    @IsOptional()
+    @IsNotEmpty({ message: "If back_text, can't be null"})
+    back_text?: string
+
+    @IsOptional()
+    @IsNotEmpty({ message: "If example, can't be null"})
+    example?: string
+
+}
