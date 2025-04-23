@@ -15,13 +15,13 @@ async function bootstrap() {
   
   app.useGlobalPipes(new ValidationPipe());
   const config = new DocumentBuilder()
-  .setTitle('WellDone API')
+  .setTitle('EngFlash API')
   .addBearerAuth()
   .addTag('auth')
   .addTag('users')
   .addTag('groups')
   .addTag('documents')
-  .setDescription('WellDone API Documentation')
+  .setDescription('Engflash API Documentation')
   .setVersion('1')
   .build();
 
