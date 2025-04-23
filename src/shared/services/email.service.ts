@@ -44,7 +44,7 @@ export class EmailService {
     const mailOptions = {
       from: this.configService.get('SMTP_FROM'),
       to,
-      subject: 'WellDone Email Test',
+      subject: 'Engflash Email Test',
       html: `
         <h1>Email Configuration Test</h1>
         <p>If you're reading this, your email configuration is working correctly!</p>
@@ -72,7 +72,7 @@ export class EmailService {
     const mailOptions = {
       from: this.configService.get('SMTP_FROM'),
       to,
-      subject: 'WellDone Password Reset Code',
+      subject: 'Engflash Password Reset Code',
       html: `
         <h1>Password Reset Request</h1>
         <p>You requested to reset your password. Here's your reset code:</p>
