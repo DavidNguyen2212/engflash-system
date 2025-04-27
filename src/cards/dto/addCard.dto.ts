@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class AddCardDTO {
     @IsNotEmpty({ message: "If front_text, can't be null"})
@@ -21,3 +21,19 @@ export class NewMeaningDTO {
     @IsNotEmpty({ message: "If front_text, can't be null"})
     front_text: string
 }
+
+export class ProcessVideoDto {
+    @IsNotEmpty()
+    @IsString()
+    url: string;
+  }
+
+export class ProcessTranscriptDto {
+    @IsNotEmpty()
+    @IsString()
+    url: string;
+
+    @IsNotEmpty()
+    @IsString()
+    level: string;
+  }
