@@ -1,3 +1,7 @@
+# Project Title
+
+<!-- VERSION BADGE --> ![version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>

@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, ParseBoolPipe, ParseIntPipe, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseBoolPipe, ParseIntPipe, Post, Put, Query, UseGuards, ValidationPipe } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards";
 import { CardsService } from "./cards.service";
 import { CurrentUser } from "../auth/decorators";
 import { ModifyExampleDTO } from "./dto/modifyExample.dto";
-import { AddCardDTO, NewMeaningDTO } from "./dto/addCard.dto";
+import { AddCardDTO, NewMeaningDTO, ProcessTranscriptDto, ProcessVideoDto } from "./dto/addCard.dto";
 
 
 @ApiTags('cards')
@@ -78,25 +78,9 @@ export class CardsController {
         return this.cardsService.addCardtoTopic(user.id, newCardData)
     }
 
-
-    // Revision
-    @Get('cards-revision-topic')
-    @ApiOperation({ summary: '' })
-    @ApiResponse({ status: 201, description: 'User successfully created' })
-    @ApiResponse({ status: 400, description: 'Bad request' })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
-    @ApiQuery({ name: 'topic_id', required: true, type: Number})
-    async getCardRevisionTopic(
-        @CurrentUser() user,
-        @Query('topic_id', ParseIntPipe) topic_id: number
-    ) {
-        return this.cardsService.reviseTopicCards(user.id, topic_id)
-    }
-
-
     // Learn from video
-    @Post('extract-meaning')
-    @ApiOperation({ summary: '' })
+    @Post('single-define')
+    @ApiOperation({ summary: 'Call this to get the meaning of a single word in the transcript.' })
     @ApiResponse({ status: 201, description: 'User successfully created' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -104,45 +88,32 @@ export class CardsController {
         @CurrentUser() user,
         @Body() newCardData: NewMeaningDTO
     ) {
-        return this.cardsService.getIPAandMeaning(newCardData.front_text)
+        return this.cardsService.getSingleMeaning(newCardData.front_text)
     }
 
     @Post('process-video')
-    @ApiOperation({ summary: '' })
+    @ApiOperation({ summary: 'Call this to get transcript of video and vtt.' })
     @ApiResponse({ status: 201, description: 'User successfully created' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
     async processVideo(
         @CurrentUser() user,
-        @Body() newCardData: NewMeaningDTO
+        @Body() data: ProcessVideoDto
     ) {
-        return this.cardsService.getIPAandMeaning(newCardData.front_text)
+        return this.cardsService.processVideo(data.url)
     }
 
-    @Post('create_from_script')
+    @Post('create-topic-from-script')
     @ApiOperation({ summary: '' })
     @ApiResponse({ status: 201, description: 'User successfully created' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
-    async createFromScript(
+    async createTopicFromScript(
         @CurrentUser() user,
-        @Body() newCardData: NewMeaningDTO
+        @Body() data: ProcessTranscriptDto
     ) {
-        return this.cardsService.getIPAandMeaning(newCardData.front_text)
+        return this.cardsService.makeTopicFromTranscript(user.id, data.url, data.level)
     }
-
-    @Post('loading_video')
-    @ApiOperation({ summary: '' })
-    @ApiResponse({ status: 201, description: 'User successfully created' })
-    @ApiResponse({ status: 400, description: 'Bad request' })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
-    async (
-        @CurrentUser() user,
-        @Body() newCardData: NewMeaningDTO
-    ) {
-        return this.cardsService.getIPAandMeaning(newCardData.front_text)
-    }
-
 
     // Revision
     @Get('cards-revision-set')
@@ -156,6 +127,20 @@ export class CardsController {
         @Query('set_id', ParseIntPipe) set_id: number
     ) {
         return this.cardsService.reviseSetCards(user.id, set_id)
+    }
+    
+    
+    @Get('cards-revision-topic')
+    @ApiOperation({ summary: '' })
+    @ApiResponse({ status: 201, description: 'User successfully created' })
+    @ApiResponse({ status: 400, description: 'Bad request' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    @ApiQuery({ name: 'topic_id', required: true, type: Number})
+    async getCardRevisionTopic(
+        @CurrentUser() user,
+        @Query('topic_id', ParseIntPipe) topic_id: number
+    ) {
+        return this.cardsService.reviseTopicCards(user.id, topic_id)
     }
 
 

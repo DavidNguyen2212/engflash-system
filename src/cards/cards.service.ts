@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Card, Set, Topic } from './entities';
 import { ModifyExampleDTO } from './dto/modifyExample.dto';
+import { YoutubeTranscript } from 'youtube-transcript';
+import { join } from 'path';
+import { access, mkdir, readFile, writeFile } from 'fs/promises';
+import { decode, decodeEntity } from 'html-entities';
 
 @Injectable()
 export class CardsService {
     constructor(
+        private dataSource: DataSource,
         @InjectRepository(Card)
         private cardRepository: Repository<Card>,
         @InjectRepository(Topic)
@@ -150,6 +155,9 @@ export class CardsService {
         // Nếu có topic_id, gán cho quan hệ topic dưới dạng object chứa khóa chính
         if (topic_id) {
           updateData.topic = { topic_id: topic_id };
+        } else {
+          // Get all the topic belong to user_id
+          // Create new topic by openai
         }
       
         // Dummy values
@@ -221,5 +229,130 @@ export class CardsService {
         return deck
     }
     
+    async getSingleMeaning(word: string) {
+      // OpenAI implementation
+      // Get the backtext (vietnamese meaning) and example
+      return {
+        front_text: word,
+        back_text: "Con lợn",
+        example: "He is a pig in the kitchen."
+      }
+    }
+
+    async processVideo(url: string) {
+      // 1. Extract video ID
+      const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)
+      if (!match) 
+        throw new BadRequestException('Invalid YouTube URL');
+      const videoId = match[1];
+
+      // 2. Fetch the transcript array [{ text, start, duration }]
+      const transcript = await YoutubeTranscript.fetchTranscript(videoId, { lang: 'en' })
+
+      // 3. Build WebVTT content
+      const vttLines = ["WEBVTT\n"]
+      transcript.forEach(({ text, duration, offset }) => {
+        const startMs = offset * 1000
+        const endMs = (offset + duration) * 1000
+        const decoded = decode(decode(text));
+
+        const fmt = (ms: number) => new Date(ms).toISOString().substring(11, 23).replace('.', ',')
+        vttLines.push(
+          `${fmt(startMs)} --> ${fmt(endMs)}`,
+          decoded,
+          ''
+        )
+      })
+
+      const vttContent = vttLines.join('\n')
+
+      // 4. Write file .vtt
+      const captionsDir = join(process.cwd(), 'captions');
+      await mkdir(captionsDir, { recursive: true });
+      const outPath = join(process.cwd(), 'captions', `${videoId}.vtt`);
+      await writeFile(outPath, vttContent, 'utf8')
+
+      return {
+        embedUrl: `https://www.youtube.com/embed/${videoId}`,
+        captionUrl: `/captions/${videoId}.vtt`
+      }
+    }
+
+    private async makeWordsByLLM(user_id: number, script: string, level: string) {
+      // dummy, i will replace with openai
+      return {
+        topic: `MyTopic (${level})`,
+        topic_description: `hello world`,
+        words: [
+          {
+            front_text: 'shut up',
+            back_text: 'im lặng',
+            ipa_pronunciation: '/ʃʌt ʌp/',
+            example: 'Shut up and listen!',
+            example_meaning: 'Im lặng và nghe đi!',
+          },
+          {
+            front_text: 'silent',
+            back_text: 'im lặng',
+            ipa_pronunciation: '/ˈsaɪlənt/',
+            example: 'Keep silent during the movie.',
+            example_meaning: 'Giữ im lặng trong khi xem phim.',
+          },
+        ],
+      }
+    }
+
+    async makeTopicFromTranscript(user_id: string, url: string, level: string) {
+      // 1. Extract video ID
+      const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)
+      if (!match) 
+        throw new BadRequestException('Invalid YouTube URL');
+      const videoId = match[1];
+
+      // 2. Verify if id exists
+      const captionsDir = join(process.cwd(), 'captions');
+      const vttPath     = join(captionsDir, `${videoId}.vtt`);
+
+      try {
+        await access(vttPath)
+        const vtt = await readFile(vttPath, 'utf-8')
+        const transcriptText = vtt.split('\n').filter((line) => line && !line.includes("-->") && line != "WEBVTT").join(' ') 
+        const results = await this.makeWordsByLLM(Number(user_id), transcriptText, level)
+        // Insert into topic, get the new topic id
+        // then batch insert to card
+        return await this.dataSource.transaction(async manager => {
+          const topic = manager.create(Topic, {
+            topic_name: results.topic,
+            topic_description: results.topic_description,
+            is_default: false
+          })
+          const savedTopic = await manager.save(topic)
+
+          const cardsToSave = results.words.map(w => 
+            manager.create(Card, {
+              front_text: w.front_text,
+              back_text: w.back_text,
+              ipa_pronunciation: w.ipa_pronunciation,
+              example: w.example,
+              example_meaning: w.example_meaning,
+              topic: savedTopic,
+              user: {id: Number(user_id)}
+            })
+          )
+          const savedCards = await manager.save(cardsToSave);
+          return {
+            topic: savedTopic,
+            cards: savedCards
+          }
+
+        })
+      } catch (error) {
+        let message = 'Unknown Error'
+        if (error instanceof Error) message = error.message
+        // we'll proceed, but let's report it
+        console.log(message)
+      }
+    
+    }
 
 }
