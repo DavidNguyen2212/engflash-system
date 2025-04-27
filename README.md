@@ -1,6 +1,10 @@
 # Project Title
 
-<!-- VERSION BADGE --> ![version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+<!-- VERSION BADGE --> 
+![version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+
+<!-- RELEASE BADGE -->
+[![release](https://img.shields.io/badge/release-1.0.0-green.svg)](https://github.com/DavidNguyen2212/engflash-system/releases/tag/1.0.0)
 
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>

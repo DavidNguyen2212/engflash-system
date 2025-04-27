@@ -62,19 +62,27 @@ jobs:
         with:
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Update version badge
-      - name: Update version badge in README
+      - name: Update badges in README
         if: github.event_name == 'push'
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          BADGE_URL="https://img.shields.io/badge/version-${VERSION}-blue.svg"
+          VERSION_BADGE="https://img.shields.io/badge/version-${VERSION}-blue.svg"
+          RELEASE_BADGE="https://img.shields.io/badge/release-${VERSION}-green.svg"
+          RELEASE_LINK="https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
 
-          # Update README.md
-          sed -i.bak -E "s|(<!-- VERSION BADGE -->).*|\1 ![version](${BADGE_URL})|" README.md
+          # Update version badge
+          sed -i.bak -E \
+            "s|(<!-- VERSION BADGE -->).*|\1 ![version](${VERSION_BADGE})|" \
+            README.md
 
-          # Commit update
+          # Update release badge (label + link)
+          sed -i.bak -E \
+            "s|(<!-- RELEASE BADGE -->).*|\1 [![release](${RELEASE_BADGE})](${RELEASE_LINK})|" \
+            README.md
+
           git add README.md
-          git commit -m "chore: update version badge to ${VERSION}"
+          git commit -m "chore: update badges to v${VERSION}"
           git push origin HEAD:master
