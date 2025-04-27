@@ -62,7 +62,7 @@ jobs:
         with:
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
 
       # Update version badge
       - name: Update version badge in README
