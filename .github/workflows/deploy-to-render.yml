@@ -13,9 +13,11 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout code
+      # 1. Checkout code (kéo luôn tags về)
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js & cache Yarn
         uses: actions/setup-node@v3
@@ -28,14 +30,8 @@ jobs:
           yarn install --frozen-lockfile
           yarn build
 
-      # - name: Lint
-      #   run: yarn lint
-
-      # - name: Test
-      #   run: yarn test -- --runInBand
-
       - name: Deploy to Render
-        if: github.event_name == 'push'  
+        if: github.event_name == 'push'
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
@@ -43,28 +39,31 @@ jobs:
           curl -X POST https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys \
             -H "Authorization: Bearer ${RENDER_API_KEY}" \
             -H "Accept: application/json"
-              # Bump version, commit, push
-              
+
       - name: Bump version
+        id: bump
         if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Bump patch version
-          npm version patch -m "chore(release): bump version to %s"
-          
+          # npm version patch sẽ tạo tag vX.Y.Z
+          NEW_TAG=$(npm version patch -m "chore(release): bump version to %s")
+          # Xuất output để các step sau dùng
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_OUTPUT
+          # Đẩy cả commit và tag lên
           git push origin HEAD:master --follow-tags
 
-      # Tạo release
       - name: Create GitHub Release
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          # Tham chiếu đúng tới output từ step bump
+          tag_name: ${{ steps.bump.outputs.NEW_TAG }}
+          release_name: Release ${{ steps.bump.outputs.NEW_TAG }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Update version badge
       - name: Update badges in README
         if: github.event_name == 'push'
         run: |
@@ -73,12 +72,9 @@ jobs:
           RELEASE_BADGE="https://img.shields.io/badge/release-${VERSION}-green.svg"
           RELEASE_LINK="https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
 
-          # Update version badge
           sed -i.bak -E \
             "s|(<!-- VERSION BADGE -->).*|\1 ![version](${VERSION_BADGE})|" \
             README.md
-
-          # Update release badge (label + link)
           sed -i.bak -E \
             "s|(<!-- RELEASE BADGE -->).*|\1 [![release](${RELEASE_BADGE})](${RELEASE_LINK})|" \
             README.md
