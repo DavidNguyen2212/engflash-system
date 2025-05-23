@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
-import { Set } from "./set.entity";
-import { Topic } from "./topic.entity";
 import { UserCardReview } from "./review.entity";
-import { User } from "../../users/entities"; 
+import { User } from "src/users/entities"; 
+import { Topic } from "src/topics/entities";
+import { Set } from "src/sets/entities";
 
 @Entity('cards')
 export class Card {
@@ -24,6 +24,8 @@ export class Card {
     @Column()
     example_meaning: string
 
+    @Column({ type: 'text', nullable: true })
+    grammar_markdown: string;
     // @Column()
     // is_learned: boolean
 
@@ -44,7 +46,7 @@ export class Card {
     @JoinColumn({ name: 'topic_id' })
     topic: Topic
 
-    @ManyToOne(() => User, (user) => user.cards, {onDelete: 'CASCADE'})
+    @ManyToOne(() => User, (user) => user.cards, {onDelete: 'CASCADE', nullable: true})
     @JoinColumn({ name: 'user_id'})
     user: User
 

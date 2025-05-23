@@ -44,6 +44,12 @@ export class User {
     @Column({ nullable: true })
     passwordResetCodeExpiresAt: Date;
 
+    @Column({ nullable: true })
+    defaultTopicsLoaded: boolean;
+
+    @Column({ nullable: true })
+    defaultSetsLoaded: boolean;
+
     @OneToMany(() => Card, (card) => card.user)
     cards: Card[];
 

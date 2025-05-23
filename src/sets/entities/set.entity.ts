@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Card } from './card.entity'; // Import entity Card
+import { Card } from '../../cards/entities/card.entity'; // Import entity Card
 
 @Entity('sets') // Tên bảng trong cơ sở dữ liệu là 'sets'
 export class Set {

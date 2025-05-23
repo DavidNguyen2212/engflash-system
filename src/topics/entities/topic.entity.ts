@@ -1,7 +1,7 @@
+import { Card } from 'src/cards/entities';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Card } from './card.entity'; // Import entity Card
 
-@Entity('topics') // Tên bảng trong cơ sở dữ liệu là 'sets'
+@Entity('topics') // Tên bảng trong cơ sở dữ liệu là 'topics'
 export class Topic {
   @PrimaryGeneratedColumn()
   topic_id: number; 

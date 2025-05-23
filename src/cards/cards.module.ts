@@ -1,11 +1,19 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { Card, Set, Topic } from "./entities";
+
 import { CardsController } from "./cards.controller";
 import { CardsService } from "./cards.service";
+import { TopicsModule } from "src/topics/topics.module";
+import { SetsModule } from "src/sets/sets.module";
+import { Card, Set, Topic } from "./entities";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Card, Set, Topic])],
+    // We need forwardRef because we are importing the CardsModule in the TopicsModule and the SetsModule
+    // and we need to avoid circular dependency
+    imports: [TypeOrmModule.forFeature([Card, Topic, Set]),
+        forwardRef(() => TopicsModule),
+        forwardRef(() => SetsModule)
+    ],
     controllers: [CardsController],
     providers: [CardsService],
     exports: [CardsService]

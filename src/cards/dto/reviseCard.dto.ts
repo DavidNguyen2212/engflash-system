@@ -1,5 +1,4 @@
 import { IsNotEmpty, IsOptional, Validate } from "class-validator";
-import { AtLeastOneFieldDefined } from "../validator/at-least-one-field.validator";
 
 // @AtLeastOneFieldDefined({ message: 'Phải cung cấp ít nhất một trường: front_text, back_text, hoặc example' })
 export class ReviseCardDTO {
