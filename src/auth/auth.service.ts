@@ -97,17 +97,18 @@ import {
         isEmailVerified: false,
       });
   
-      await this.emailService.sendVerificationCode(
-        newUser.email,
-        verificationCode,
-      );
+      // await this.emailService.sendVerificationCode(
+      //   newUser.email,
+      //   verificationCode,
+      // );
   
-      const { password, verificationCode: code, ...result } = newUser;
+      // const { password, verificationCode: code, ...result } = newUser;
+      const { password, ...result } = newUser;
   
       return {
         message:
-          'User registered successfully. Please check your email for verification code.',
-        verificationEmailSent: true,
+          'User registered successfully.',
+        // verificationEmailSent: true,
         user: result,
       };
     }
@@ -206,39 +207,40 @@ import {
       if (!user) {
         return {
           message:
-            'If your email is registered, you will receive a password reset code.',
+            // 'If your email is registered, you will receive a password reset code.',
+            'The email you entered was not registed!',
         };
       }
   
-      const resetCode = this.generateVerificationCode();
-      const resetCodeExpiresAt = this.getVerificationCodeExpiry();
+      // const resetCode = this.generateVerificationCode();
+      // const resetCodeExpiresAt = this.getVerificationCodeExpiry();
   
-      await this.usersService.update(user.id, {
-        passwordResetCode: resetCode,
-        passwordResetCodeExpiresAt: resetCodeExpiresAt,
-      });
+      // await this.usersService.update(user.id, {
+      //   passwordResetCode: resetCode,
+      //   passwordResetCodeExpiresAt: resetCodeExpiresAt,
+      // });
   
-      await this.emailService.sendPasswordResetCode(email, resetCode);
+      // await this.emailService.sendPasswordResetCode(email, resetCode);
   
       return {
-        message:
-          'If your email is registered, you will receive a password reset code.',
+        user_id: user.id,
       };
     }
   
     async resetPassword(resetPasswordDto: ResetPasswordDto) {
-      const user = await this.usersService.findByEmail(resetPasswordDto.email);
+      // const user = await this.usersService.findByEmail(resetPasswordDto.email);
+      const user = await this.usersService.findById(resetPasswordDto.user_id);
       if (!user) {
         throw new BadRequestException('Invalid reset attempt');
       }
   
-      if (
-        !user.passwordResetCode ||
-        user.passwordResetCode !== resetPasswordDto.code ||
-        new Date() > user.passwordResetCodeExpiresAt
-      ) {
-        throw new BadRequestException('Invalid or expired reset code');
-      }
+      // if (
+      //   !user.passwordResetCode ||
+      //   user.passwordResetCode !== resetPasswordDto.code ||
+      //   new Date() > user.passwordResetCodeExpiresAt
+      // ) {
+      //   throw new BadRequestException('Invalid or expired reset code');
+      // }
   
       const hashedPassword = await this.hashPassword(
         resetPasswordDto.newPassword,
@@ -251,7 +253,7 @@ import {
       });
   
       return {
-        message: 'Password reset successful',
+        message: 'Password reset successfully',
       };
     }
     async getProfile(userId: number) {
