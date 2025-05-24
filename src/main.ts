@@ -19,6 +19,8 @@ async function bootstrap() {
   .addBearerAuth()
   .addTag('auth')
   .addTag('users')
+  .addTag('statistics')
+  .addTag('notifications')
   // .addTag('groups')
   // .addTag('documents')
   .setDescription('Engflash API Documentation')

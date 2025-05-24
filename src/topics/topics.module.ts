@@ -4,12 +4,14 @@ import { Topic } from "./entities"
 import { TopicsController } from "./topics.controller";
 import { TopicsService } from "./topics.service";
 import { CardsModule } from "../cards/cards.module";
-import { Card } from "src/cards/entities";
+import { Card, UserCardReview } from "src/cards/entities";
 import { User } from "src/users/entities";
+import { SharedModule } from "src/shared/shared.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Topic, Card, User]),
-        forwardRef(() => CardsModule)
+    imports: [TypeOrmModule.forFeature([Topic, Card, User, UserCardReview]),
+        forwardRef(() => CardsModule),
+        SharedModule
     ],
     controllers: [TopicsController],
     providers: [TopicsService],

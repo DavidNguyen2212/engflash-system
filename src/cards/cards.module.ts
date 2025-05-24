@@ -5,14 +5,17 @@ import { CardsController } from "./cards.controller";
 import { CardsService } from "./cards.service";
 import { TopicsModule } from "src/topics/topics.module";
 import { SetsModule } from "src/sets/sets.module";
-import { Card, Set, Topic } from "./entities";
+import { Card, Set, Topic, UserCardReview, UserCardReviewChoice, UserCardReviewLog } from "./entities";
+import { SharedModule } from "src/shared/shared.module";
+import { UserDailyActivity } from "src/statistics/entities";
 
 @Module({
     // We need forwardRef because we are importing the CardsModule in the TopicsModule and the SetsModule
     // and we need to avoid circular dependency
-    imports: [TypeOrmModule.forFeature([Card, Topic, Set]),
+    imports: [TypeOrmModule.forFeature([Card, Topic, Set, UserCardReview, UserCardReviewChoice, UserDailyActivity, UserCardReviewLog]),
         forwardRef(() => TopicsModule),
-        forwardRef(() => SetsModule)
+        forwardRef(() => SetsModule),
+        SharedModule
     ],
     controllers: [CardsController],
     providers: [CardsService],

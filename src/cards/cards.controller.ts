@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags }
 import { JwtAuthGuard } from "../auth/guards";
 import { CardsService } from "./cards.service";
 import { CurrentUser } from "../auth/decorators";
-import { ModifyExampleDTO, AddCardDTO, NewMeaningDTO, ReviseCardDTO, AIExampleDTO, SimpleCardDTO } from "./dto";
+import { ModifyExampleDTO, AddCardDTO, NewMeaningDTO, ReviseCardDTO, AIExampleDTO, SimpleCardDTO, ReviewCardDTO } from "./dto";
 
 
 @ApiTags('cards')
@@ -85,5 +85,19 @@ export class CardsController {
         @Body() { card_id }: SimpleCardDTO
     ) {
         return this.cardsService.deleteCard(user.id, card_id)
+    }
+
+
+    // Learning (Swiping)
+    @Post('learn')
+    @ApiOperation({ summary: 'Learn a card using spaced repetition (swipe left/right)' })
+    @ApiResponse({ status: 201, description: 'Successfully' })
+    @ApiResponse({ status: 400, description: 'Bad request' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    async swipeCard(
+        @CurrentUser() user,
+        @Body() body: ReviewCardDTO
+    ) {
+        return this.cardsService.swipeCard(user.id, body)
     }
 }

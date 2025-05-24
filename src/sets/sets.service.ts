@@ -38,6 +38,13 @@ export class SetsService {
           await manager.save(user);
     
           for (const defSet of defaultSets) {
+            const clonedSet = manager.create(Set, {
+              set_name: defSet.set_name,
+              set_description: defSet.set_description,
+              user: user
+            });
+            await manager.save(clonedSet);
+
             const defaultCards = await this.cardRepository.find({
               where: {
                 user: IsNull(),
@@ -50,7 +57,7 @@ export class SetsService {
                 const { card_id, ...rest } = card;
                 return manager.create(Card, {
                   ...rest,
-                  set: defSet,          
+                  set: clonedSet,          
                   user: user,                  
                 });
               });
@@ -60,12 +67,17 @@ export class SetsService {
         });
       }
 
-      const sets = await this.setRepository
-            .createQueryBuilder('set')
-            .leftJoin('set.cards', 'card')
-            .where('card.user_id = :user_id', { user_id })
-            .orderBy('set.set_id', 'ASC')
-            .getMany()
+      // const sets = await this.setRepository
+      //       .createQueryBuilder('set')
+      //       .leftJoin('set.cards', 'card')
+      //       .where('card.user_id = :user_id', { user_id })
+      //       .orderBy('set.set_id', 'ASC')
+      //       .getMany()
+      const sets = await this.setRepository.find({
+        where: { user: { id: Number(user_id) } },
+        order: { set_id: 'ASC' },
+        // relations: ['cards'], // nếu cần preload cards
+      });
         
       return { sets }
     }

@@ -1,70 +1,65 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards";
-import { TopicsService } from "./topics.service";
+import { StatisticsService } from "./statistics.service";
 import { CurrentUser } from "../auth/decorators";
-import { ProcessTranscriptDto, ProcessVideoDto } from "./dto";
 
 
-@ApiTags('topics')
+@ApiTags('statistics')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('topics')
-export class TopicsController {
-    constructor(private readonly topicsService: TopicsService) {}
+@Controller('statistics')
+export class StatisticsController {
+    constructor(private readonly statisticsService: StatisticsService) {}
 
     // Private route to add word to a default topic
 
 
     // Learning
-    @Get()
-    @ApiOperation({ summary: 'Get all topic id of current user' })
+    @Get('streak')
+    @ApiOperation({ summary: `Get current user's streak` })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
-    async getAllTopics(@CurrentUser() user) {
-        // console.log(user)
-        return this.topicsService.getAllTopicsByUser(user.id)
+    async getStreakLength(@CurrentUser() user) {
+        return this.statisticsService.getStreakLengthByUser(user.id)
     }
 
-    @Get(':topicId/cards')
-    @ApiOperation({ summary: 'Get all cards from a single topic' })
+    @Get('proficient-cards')
+    @ApiOperation({ summary: 'Get statistics about total & proficient cards' })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
-    @ApiParam({ name: 'topicId', type: Number})
-    async getCardsBySet(
+    async getCardStats(
         @CurrentUser() user,
-        @Param('topicId', ParseIntPipe) topicId: number
     ) {
-        return this.topicsService.getAllCardsfromTopic(user.id, topicId)
+        return this.statisticsService.getCardStatsByUser(user.id)
     }
 
-
-    // Video learning
-    @Post('from-video')
-    @ApiOperation({ summary: 'Call this to get transcript of video and vtt.' })
+    @Get('learning-status')
+    @ApiOperation({ summary: 'Get statistics about 4 types of card: chưa học, đang học, đã học, đã ôn' })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
-    async processVideo(
+    async getCardStatusStats(
         @CurrentUser() user,
-        @Body() data: ProcessVideoDto
     ) {
-        return this.topicsService.createTranscriptFromVideo(data.url)
+        return this.statisticsService.getCardStatusStatsByUser(user.id)
     }
 
-    @Post('from-script')
-    @ApiOperation({ summary: '' })
+    @Get('weekly-and-5days')
+    @ApiOperation({ summary: 'Get statistics about 4 types of card: chưa học, đang học, đã học, đã ôn' })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
-    async createTopicFromScript(
+    async getCardStatusLongTime(
         @CurrentUser() user,
-        @Body() data: ProcessTranscriptDto
     ) {
-        return this.topicsService.createTopicFromTranscript(user.id, data.url, data.level)
+        return this.statisticsService.getCardStatusLongTimeByUser(user.id)
     }
+
+
+
    
     // Revision
     @Get(':topicId/revision-cards')
@@ -77,7 +72,7 @@ export class TopicsController {
         @CurrentUser() user,
         @Param('topicId', ParseIntPipe) topicId: number
     ) {
-        return this.topicsService.reviseTopicCards(user.id, topicId)
+        return this.statisticsService.reviseTopicCards(user.id, topicId)
     }
 
 }

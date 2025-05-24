@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, IsNull } from 'typeorm';
+import { Repository, DataSource, IsNull, LessThanOrEqual } from 'typeorm';
 import { access, mkdir, readFile, writeFile } from 'fs/promises';
-import { Card, Topic } from 'src/cards/entities';
+import { Card, Topic, UserCardReview } from 'src/cards/entities';
 import { YoutubeTranscript } from 'youtube-transcript';
 import { decode } from 'html-entities';
 import { join } from 'path';
@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import axios from 'axios';
 import { User } from 'src/users/entities';
+import { OpenAIService } from 'src/shared/services/openai.service';
 
 @Injectable()
 export class TopicsService {
@@ -20,9 +21,12 @@ export class TopicsService {
         private cardRepository: Repository<Card>,
         @InjectRepository(User)
         private userRepository: Repository<User>,
+        @InjectRepository(UserCardReview)
+        private reviewRepository: Repository<UserCardReview>,
         @InjectRepository(Topic)
         private topicRepository: Repository<Topic>,
-        private configService: ConfigService
+        private configService: ConfigService,
+        private openaiService: OpenAIService
     ) { 
 
       cloudinary.config({
@@ -57,6 +61,15 @@ export class TopicsService {
           await manager.save(user);
     
           for (const defTopic of defaultTopics) {
+            // Tạo bản sao của topic
+            const clonedTopic = manager.create(Topic, {
+              topic_name: defTopic.topic_name,
+              topic_description: defTopic.topic_description,
+              is_default: true,
+              user: user
+            });
+            await manager.save(clonedTopic);
+              
             const defaultCards = await this.cardRepository.find({
               where: {
                 user: IsNull(),
@@ -69,7 +82,7 @@ export class TopicsService {
                 const { card_id, ...rest } = card;
                 return manager.create(Card, {
                   ...rest,
-                  topic: defTopic,           // gán topic mới
+                  topic: clonedTopic,           // gán topic mới
                   user: user,                  // gán user hiện tại
                 });
               });
@@ -78,13 +91,17 @@ export class TopicsService {
           }
         });
       }
-
-      const topics = await this.topicRepository
-          .createQueryBuilder('topic')
-          .leftJoin('topic.cards', 'card')
-          .where('card.user_id = :user_id', { user_id })
-          .orderBy('topic.topic_id', 'ASC')
-          .getMany()
+      // const topics = await this.topicRepository
+      //     .createQueryBuilder('topic')
+      //     .leftJoin('topic.cards', 'card')
+      //     .where('card.user_id = :user_id', { user_id })
+      //     .orderBy('topic.topic_id', 'ASC')
+      //     .getMany()
+      const topics = await this.topicRepository.find({
+        where: { user: { id: Number(user_id) } },
+        order: { topic_id: 'ASC' },
+        // relations: ['cards'], // nếu cần preload cards
+      });
       
       return { topics }
     }
@@ -101,35 +118,6 @@ export class TopicsService {
         return { cards }
     }
 
-    async createMultipleChoice(words: string, meaning: string) {
-        return ["Dummy 1", "Dummy 2", meaning]
-    }
-    async reviseTopicCards(user_id: string, topic_id: number) {
-        const cards = await this.cardRepository.find({
-            where: {
-              topic: {topic_id},
-              user: {
-                id: parseInt(user_id),
-              },
-            },
-            // relations: ['user'],
-        });
-
-        if (!cards) {
-            throw new NotFoundException(`Card belonging topic ${topic_id} not found or does not belong to user ${user_id}`);
-        }
-
-        const deck = await Promise.all(
-            cards.map(async (card) => ({
-              card,
-              choices: await this.createMultipleChoice(card.front_text, card.back_text),
-            })),
-          );
-
-        return deck
-    }
-
-  
     async createTranscriptFromVideo(url: string) {
       // 1. Extract video ID
       const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)
@@ -155,11 +143,7 @@ export class TopicsService {
       })
       const vttContent = vttLines.join('\n')
 
-      // 4. Write file .vtt
-      // const captionsDir = join(process.cwd(), 'captions');
-      // await mkdir(captionsDir, { recursive: true });
-      // const outPath = join(process.cwd(), 'captions', `${videoId}.vtt`);
-      // await writeFile(outPath, vttContent, 'utf8')
+      // 4. Upload to cloudinary
       const uploadResult: any = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
@@ -182,62 +166,7 @@ export class TopicsService {
       }
     }
 
-    private async makeWordsByLLM(user_id: number, script: string, level: string) {
-      // dummy, i will replace with openai
-      const openai = new OpenAI({
-        apiKey: this.configService.get<string>('OPENAI_API_KEY'), // đảm bảo có trong .env
-      });
-
-      const prompt = `
-  Bạn là một trợ lý học tiếng Anh. Với đoạn script sau: 
-  <Script>
-  ${script}
-  </Script>
-  Tôi cần bạn trích xuất ra những từ có cấp độ ${level}. Hãy trả về kết quả ở định dạng JSON (không giải thích gì thêm):
-  {
-    topic: "..." // tên topic mà bạn đề xuất,
-    topic_description: "..." // mô tả cho topic này,
-    words: [
-      {
-        front_text: 'shut up',
-        back_text: 'im lặng',
-        ipa_pronunciation: '/ʃʌt ʌp/',
-        example: 'Shut up and listen!',
-        example_meaning: 'Im lặng và nghe đi!',
-      },
-      {
-        front_text: 'silent',
-        back_text: 'im lặng',
-        ipa_pronunciation: '/ˈsaɪlənt/',
-        example: 'Keep silent during the movie.',
-        example_meaning: 'Giữ im lặng trong khi xem phim.',
-      },
-    ], // Là một list của các object từ, mỗi object gồm các trường cho một flashcard, gồm frontext (từ), back_text (nghĩa tiếng Việt của từ), ipa_pronunciation (phát âm ipa), example (ví dụ tiếng Anh cho từ), example_meaning (nghĩa tiếng Việt của ví dụ)
-  }
-    Tránh trả về triple backticks.
-      `;
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.4,
-      });
-  
-      try {
-        const content = response.choices[0].message.content;
-        console.log(content)
-        const data = JSON.parse(content ?? "");
-        console.log(data)
-        return data
-      } catch (err) {
-        console.error('Error generating json content:', err);
-      }
-
-    }
+    
 
     async createTopicFromTranscript(user_id: string, url: string, level: string) {
       let vttContent: string;
@@ -251,12 +180,9 @@ export class TopicsService {
       }
 
       try {
-        // await access(vttPath)
-        // const vtt = await readFile(vttPath, 'utf-8')
         const transcriptText = vttContent.split('\n').filter((line) => line && !line.includes("-->") && line != "WEBVTT").join(' ') 
         console.log(transcriptText);
-        const results = await this.makeWordsByLLM(Number(user_id), transcriptText, level)
-        // return true
+        const results = await this.openaiService.makeWordList(Number(user_id), transcriptText, level)
         // Insert into topic, get the new topic id
         // then batch insert to card
         return await this.dataSource.transaction(async manager => {
@@ -290,7 +216,36 @@ export class TopicsService {
         // we'll proceed, but let's report it
         console.log(message)
       }
-    
     }
+
+    async reviseTopicCards(userId: string, topicId: number) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Để so sánh chính xác đến ngày
+    
+      const cardsToReview = await this.reviewRepository.find({
+        where: {
+          user: { id: Number(userId) },
+          card: {
+            topic: { topic_id: topicId },
+          },
+          next_review_date: LessThanOrEqual(today),
+        },
+        relations: ['card', 'choices'],
+      });
+
+      if (!cardsToReview || cardsToReview.length === 0) {
+        throw new NotFoundException(
+          `No cards to review in topic ${topicId} for user ${userId}`,
+        );
+      }
+
+      const deck = cardsToReview.map((review) => ({
+        card: review.card,
+        choices: review.choices.map((c) => Object({key: c.text, value: c.isCorrect})), // from DB, no need OpenAI anymore
+      }));
+
+      return deck;
+    }
+
 
 }

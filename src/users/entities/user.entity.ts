@@ -1,6 +1,7 @@
-import { Card } from '../../cards/entities';
+import { Card, Topic, Set } from '../../cards/entities';
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { UserCardReview } from '../../cards/entities';
+import { UserDailyActivity } from 'src/statistics/entities';
 
 @Entity('users')
 export class User {
@@ -59,4 +60,13 @@ export class User {
 
     @Column({ nullable: true })
     lastLogin: Date;
+
+    @OneToMany(() => Topic, (topic) => topic.user)
+    topics: Topic[];
+
+    @OneToMany(() => Set, (set) => set.user)
+    sets: Set[];
+
+    @OneToMany(() => UserDailyActivity, (activity) => activity.user)
+    dailyActivities: UserDailyActivity[];
 }

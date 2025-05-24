@@ -2,14 +2,15 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, IsNull, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Card, Topic, UserCardReview, UserCardReviewLog } from 'src/cards/entities';
+import dayjs from 'dayjs';
 import axios from 'axios';
 import { User } from 'src/users/entities';
 import { OpenAIService } from 'src/shared/services/openai.service';
+import { UserDailyActivity } from './entities';
 import { DateTime } from 'luxon';
-import { UserDailyActivity } from 'src/statistics/entities';
 
 @Injectable()
-export class NotificationsService {
+export class StatisticsService {
     constructor(
         private dataSource: DataSource,
         @InjectRepository(Card)

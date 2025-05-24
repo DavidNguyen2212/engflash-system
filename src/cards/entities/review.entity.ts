@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Card } from "./card.entity";
 import { User } from "src/users/entities";
 
@@ -36,4 +36,43 @@ export class UserCardReview {
     // Ngày ôn tập gần nhất
     @Column({ type: 'date', nullable: true })
     last_review_date: Date;
+
+    @OneToMany(() => UserCardReviewChoice, (choice) => choice.review, { cascade: true })
+    choices: UserCardReviewChoice[];
+}
+
+
+@Entity('user_card_review_choices')
+export class UserCardReviewChoice {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  text: string;
+
+  @Column({ default: false })
+  isCorrect: boolean;
+
+  @ManyToOne(() => UserCardReview, (review) => review.choices, { onDelete: 'CASCADE' })
+  review: UserCardReview;
+}
+
+@Entity('user_card_review_logs')
+export class UserCardReviewLog {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @ManyToOne(() => Card, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'card_id' })
+  card: Card;
+
+  @Column({ type: 'varchar', length: 10 })
+  rating: 'good' | 'again';
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  reviewed_at: Date;
 }
