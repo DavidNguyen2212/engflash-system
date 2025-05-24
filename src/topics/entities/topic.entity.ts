@@ -1,5 +1,6 @@
 import { Card } from 'src/cards/entities';
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { User } from 'src/users/entities';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('topics') // Tên bảng trong cơ sở dữ liệu là 'topics'
 export class Topic {
@@ -18,4 +19,9 @@ export class Topic {
   // Mối quan hệ một-đến-nhiều với Card
   @OneToMany(() => Card, (card) => card.topic)
   cards: Card[]; // Mảng các Card thuộc Set này
+
+  @ManyToOne(() => User, (user) => user.topics, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
 }

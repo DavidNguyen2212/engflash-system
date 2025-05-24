@@ -8,6 +8,10 @@ import { AuthModule } from './auth/auth.module';
 import { CardsModule } from './cards/cards.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { StatisticsModule } from './statistics/statistics.module';
+import { TopicsModule } from './topics/topics.module';
+import { SetsModule } from './sets/sets.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -46,7 +50,11 @@ import { join } from 'path';
     }),
     UsersModule,
     AuthModule,
-    CardsModule
+    CardsModule,
+    StatisticsModule,
+    TopicsModule,
+    SetsModule,
+    NotificationsModule
   ],
   controllers: [AppController],
   providers: [AppService],

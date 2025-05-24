@@ -1,70 +1,50 @@
-// import {
-//   Controller,
-//   Get,
-//   Post,
-//   Body,
-//   Patch,
-//   Param,
-//   Delete,
-//   UseGuards,
-// } from '@nestjs/common';
-// import {
-//   ApiTags,
-//   ApiOperation,
-//   ApiResponse,
-//   ApiBearerAuth,
-// } from '@nestjs/swagger';
-// import { JwtAuthGuard } from '../auth/guards';
-// import { UsersService } from './notifications.service';
-// // import { CreateUserDto, UpdateUserDto } from './dto';
-// @ApiTags('users')
-// @ApiBearerAuth()
-// @UseGuards(JwtAuthGuard)
-// @Controller('users')
-// export class UsersController {
-//   constructor(private readonly usersService: UsersService) {}
+import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../auth/guards";
+import { CurrentUser } from "../auth/decorators";
+import { NotificationsService } from "./notifications.service";
 
-//   @Post()
-//   @ApiOperation({ summary: 'Create a new user' })
-//   @ApiResponse({ status: 201, description: 'User successfully created' })
-//   @ApiResponse({ status: 400, description: 'Bad request' })
-//   @ApiResponse({ status: 401, description: 'Unauthorized' })
-//   create(@Body() createUserDto: CreateUserDto) {
-//     return this.usersService.create(createUserDto);
-//   }
 
-//   @Get()
-//   @ApiOperation({ summary: 'Get all users' })
-//   @ApiResponse({ status: 200, description: 'Return all users' })
-//   @ApiResponse({ status: 401, description: 'Unauthorized' })
-//   findAll() {
-//     return this.usersService.findAll();
-//   }
+@ApiTags('notifications')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('notifications')
+export class NotificationsController {
+    constructor(private readonly notificationsService: NotificationsService) {}
 
-//   @Get(':id')
-//   @ApiOperation({ summary: 'Get a user by id' })
-//   @ApiResponse({ status: 200, description: 'Return the user' })
-//   @ApiResponse({ status: 404, description: 'User not found' })
-//   @ApiResponse({ status: 401, description: 'Unauthorized' })
-//   findOne(@Param('id') id: string) {
-//     return this.usersService.findOne(+id);
-//   }
+    // Private route to add word to a default topic
 
-//   @Patch(':id')
-//   @ApiOperation({ summary: 'Update a user' })
-//   @ApiResponse({ status: 200, description: 'User successfully updated' })
-//   @ApiResponse({ status: 404, description: 'User not found' })
-//   @ApiResponse({ status: 401, description: 'Unauthorized' })
-//   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-//     return this.usersService.update(+id, updateUserDto);
-//   }
 
-//   @Delete(':id')
-//   @ApiOperation({ summary: 'Delete a user' })
-//   @ApiResponse({ status: 200, description: 'User successfully deleted' })
-//   @ApiResponse({ status: 404, description: 'User not found' })
-//   @ApiResponse({ status: 401, description: 'Unauthorized' })
-//   remove(@Param('id') id: string) {
-//     return this.usersService.remove(+id);
-//   }
-// }
+    // Learning
+    @Get('streak')
+    @ApiOperation({ summary: `Get current user's streak` })
+    @ApiResponse({ status: 201, description: 'Successfully' })
+    @ApiResponse({ status: 400, description: 'Bad request' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    async getStreakLength(@CurrentUser() user) {
+        return this.notificationsService.getStreakLengthByUser(user.id)
+    }
+
+    @Get('proficient-cards')
+    @ApiOperation({ summary: 'Get statistics about total & proficient cards' })
+    @ApiResponse({ status: 201, description: 'Successfully' })
+    @ApiResponse({ status: 400, description: 'Bad request' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    async getCardStats(
+        @CurrentUser() user,
+    ) {
+        return this.notificationsService.getCardStatsByUser(user.id)
+    }
+
+    @Get('learning-status')
+    @ApiOperation({ summary: 'Get statistics about 4 types of card: chưa học, đang học, đã học, đã ôn' })
+    @ApiResponse({ status: 201, description: 'Successfully' })
+    @ApiResponse({ status: 400, description: 'Bad request' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
+    async getCardStatusStats(
+        @CurrentUser() user,
+    ) {
+        return this.notificationsService.getCardStatusStatsByUser(user.id)
+    }
+
+}

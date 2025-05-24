@@ -1,10 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Card, Set, Topic } from './entities';
-import { AIExampleDTO, ModifyExampleDTO, NewMeaningDTO } from './dto';
+import { Card, Set, Topic, UserCardReview, UserCardReviewChoice, UserCardReviewLog } from './entities';
+import { AIExampleDTO, ModifyExampleDTO, NewMeaningDTO, ReviewCardDTO } from './dto';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { OpenAIService } from 'src/shared/services/openai.service';
+import { capitalizeFirstLetter } from '../utils/capitalizer.util'
+import { UserDailyActivity } from 'src/statistics/entities';
 
 @Injectable()
 export class CardsService {
@@ -16,7 +19,15 @@ export class CardsService {
         private topicRepository: Repository<Topic>,
         @InjectRepository(Set)
         private setRepository: Repository<Set>,
-        private configService: ConfigService
+        @InjectRepository(UserCardReview)
+        private reviewRepository: Repository<UserCardReview>,
+        @InjectRepository(UserCardReviewChoice)
+        private choiceRepository: Repository<UserCardReviewChoice>,
+        @InjectRepository(UserDailyActivity)
+        private dailyActivityRepository: Repository<UserDailyActivity>,
+        @InjectRepository(UserCardReviewLog)
+        private reviewLogRepository: Repository<UserCardReviewLog>,
+        private openaiService: OpenAIService
     ) { }
 
     async generateAIGrammar(user_id: string, card_id: number) {
@@ -35,82 +46,17 @@ export class CardsService {
           throw new NotFoundException(`Card with ID ${card_id} not found or does not belong to user ${user_id}`);
       }
 
-      const openai = new OpenAI({
-        apiKey: this.configService.get<string>('OPENAI_API_KEY'), // đảm bảo có trong .env
-      });
-
-      const prompt = `
-  Bạn là một trợ lý học tiếng Anh. Với từ/cụm từ sau: "${card.front_text}", nghĩa tiếng Việt của nó: "${card.back_text}", và một ví dụ cơ bản: "${card.example}", hãy trả về kết quả ở định dạng markdown. Yêu cầu như sau:
-
-  - Mở đầu với tiêu đề: "Understanding ${card.front_text}." Sau đó giới thiệu về nó, sơ lược về các tình huống giao tiếp.
-  - Tiếp theo là mục: "Meaning". Sau đó giải nghĩa từ này.
-  - Tiếp theo là mục: "How to use it". Bạn đưa ra các trường hợp sử dụng.
-  - Tiếp theo là mục: "Example of usage": Bạn đưa ra các ví dụ tương ứng với các usecase ở mục How to use it.
-  - Cuối cùng là mục: "Synonyms". Sau đó đưa ra các từ đồng nghĩa.
-      `;
-  
-      try {
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-        });
-  
-        const markdownOutput = completion.choices[0]?.message?.content || '';
-        card.grammar_markdown = markdownOutput;
-        await this.cardRepository.save(card);
-        return {
-          card_id,
-          grammar_markdown: markdownOutput,
-        };
-      } catch (error) {
-        console.error('Error from OpenAI:', error);
-        throw new Error('Failed to generate grammar explanation');
-      }
-  
-    }
+      const result = await this.openaiService.generateAIGrammar(card.front_text, card.back_text, card.example)
+      card.grammar_markdown = result.grammar_markdown;
+      await this.cardRepository.save(card);
+      return {
+        card_id,
+        grammar_markdown: result.grammar_markdown,
+      };
+    } 
 
     async getMeaningfromAI(providedData: AIExampleDTO) {
-      const openai = new OpenAI({
-        apiKey: this.configService.get<string>('OPENAI_API_KEY'), // đảm bảo có trong .env
-      });
-
-      const prompt = `
-  Bạn là một trợ lý học tiếng Anh. Với từ/cụm từ sau: "${providedData.front_text}", nghĩa tiếng Việt của nó: "${providedData.back_text}", hãy trả về kết quả ở định dạng JSON:
-  {
-    "example": "..." // Bạn cần đưa ra ví dụ tiếng anh với từ và nghĩa đã cho của nó. 
-    "vietnamese_meaning": "..." // nghĩa tiếng Việt ngắn gọn, tự nhiên cho ví dụ tiếng anh bạn đã cung cấp ở trên
-  }
-  Tránh trả về triple backticks.
-      `;
-  
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.4,
-      });
-  
-      try {
-        const content = response.choices[0].message.content;
-  
-        const data = JSON.parse(content ?? "");
-        console.log(data)
-        return {
-          vietnamese_meaning: data.vietnamese_meaning,
-          example: data.example
-        };
-      } catch (err) {
-        console.error('Error generating json content:', err);
-        return {
-          vietnamese_meaning: null,
-          example: null
-        };
-      }
+      return await this.openaiService.getMeaning(providedData.front_text, providedData.back_text)
     }
 
     async modifyCardExample(user_id: string, payload: ModifyExampleDTO) {
@@ -140,56 +86,6 @@ export class CardsService {
         return { cards }
     }
 
-    async getIPAandMeaning(word: string, example: string | null = null) {
-      const openai = new OpenAI({
-        apiKey: this.configService.get<string>('OPENAI_API_KEY'), // đảm bảo có trong .env
-      });
-      const prompt = `
-  Bạn là một trợ lý học tiếng Anh. Với từ/cụm từ sau: "${word}" và câu chứa từ này "${example || 'nil'}", hãy trả về kết quả ở định dạng JSON:
-  {
-    "ipa": "...", // phiên âm quốc tế IPA
-    "example": "..." // Nếu câu chứa từ đó là 'nil', bạn cần đưa ra ví dụ tiếng anh với từ đã cho. Ngược lại, chỉ cần trả về câu đó với chữ cái đầu viết hoa.
-    "vietnamese_meaning": "..." // nghĩa tiếng Việt ngắn gọn, tự nhiên cho câu chứa từ đó. Nếu câu là 'nil', bạn cần đưa ra nghĩa của ví dụ tiếng anh bạn đã cung cấp ở trên
-    "topic_name": "..." // tên của topic mà bạn nghĩ từ vựng này nên thuộc về, ví dụ: "basketball" thì thuộc topic "sports"
-    "topic_description": "..." // miêu tả ngắn về topic
-  }
-  Tránh trả về triple backticks.
-      `;
-  
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.4,
-      });
-  
-      try {
-        const content = response.choices[0].message.content;
-  
-        const data = JSON.parse(content ?? "");
-        console.log(data)
-        return {
-          ipa: data.ipa,
-          vietnamese_meaning: data.vietnamese_meaning,
-          example: data.example,
-          topic_name: data.topic_name,
-          topic_description: data.topic_description
-        };
-      } catch (err) {
-        console.error('Error generating json content:', err);
-        return {
-          ipa: null,
-          vietnamese_meaning: null,
-          example: null,
-          topic_name: null,
-          topic_description: null
-        };
-      }
-    }
 
     async addCardtoTopic(user_id: string, payload: any) {
         // Destructure và gán giá trị mặc định
@@ -207,7 +103,7 @@ export class CardsService {
           updateData.example = example;
         }
        
-        const aiResult = await this.getIPAandMeaning(
+        const aiResult = await this.openaiService.getIPAandMeaning(
           updateData.front_text || front_text, 
           updateData.example || example
         );
@@ -262,47 +158,101 @@ export class CardsService {
       return { message: `Card with ID ${card_id} deleted successfully` };
   }
 
-  //   async createMultipleChoice(words: string, meaning: string) {
-  //       return ["Dummy 1", "Dummy 2", meaning]
-  //   }
-
     async getSingleMeaning(wordData: NewMeaningDTO) {
-      const openai = new OpenAI({
-        apiKey: this.configService.get<string>('OPENAI_API_KEY'), // đảm bảo có trong .env
-      });
-      const prompt = `
-  Bạn là một trợ lý học tiếng Anh. Với từ/cụm từ sau: "${wordData.front_text}" và ngữ cảnh của nó: "${wordData.cover_sentence}", hãy trả về kết quả ở định dạng JSON:
-  {
-    "meaning": "..." // nghĩa tiếng Việt của từ đó
-  }
-  Tránh trả về triple backticks.
-      `;
-  
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.4,
-      });
-  
-      try {
-        const content = response.choices[0].message.content;
-  
-        const data = JSON.parse(content ?? "");
-        console.log(data)
-        return {
-          meaning: data.meaning,
-        };
-      } catch (err) {
-        console.error('Error generating json content:', err);
-        return {
-          meaning: null
-        };
-      }
+      return await this.openaiService.getSingleMeaning(wordData.front_text, wordData.cover_sentence)
     }
 
+    async swipeCard(userId: number, { card_id, rating }: ReviewCardDTO) {
+      const card = await this.cardRepository.findOne({ where: { card_id, user: { id: userId } } });
+      if (!card) 
+        throw new NotFoundException('Card not found');
+
+      let review = await this.reviewRepository.findOne({
+        where: { 
+          card: { card_id }, user: { id: userId }
+        },
+        relations: ['card', 'user'],
+      })
+
+      const now = new Date()
+      const isFirstReview = !review;
+
+      if (!review) {
+        review = this.reviewRepository.create({
+          user: { id: userId },
+          card: { card_id },
+          ease_factor: 2.5,
+          interval: 0,
+          repetitions: 0,
+          last_review_date: now,
+          next_review_date: now,
+        })
+      }
+      
+      if (rating === 'good') {
+        review.repetitions += 1
+        review.ease_factor = Math.max(1.3, review.ease_factor + 0.1)
+        if (review.repetitions === 1) {
+          review.interval = 1
+        } else if (review.repetitions === 2) {
+          review.interval = 6;
+        } else {
+          review.interval = Math.round(review.interval * review.ease_factor);
+        }
+      } else {
+        review.repetitions = 0;
+        review.interval = 1;
+        review.ease_factor = Math.max(1.3, review.ease_factor - 0.2);
+      }
+      
+      review.last_review_date = now
+      review.next_review_date = new Date(
+        now.getTime() + review.interval * 24 * 60 * 60 * 1000
+      )
+    
+      const savedReview = await this.reviewRepository.save(review);
+      if (isFirstReview) {
+        const choices = await this.openaiService.createMultipleChoice(card.front_text, card.back_text)
+        const choiceEntities = choices.map((text) => 
+          this.choiceRepository.create({
+            text,
+            isCorrect: text === capitalizeFirstLetter(card.back_text),
+            review: savedReview
+          })
+        )
+        await this.choiceRepository.save(choiceEntities);
+      }
+
+      await this.updateDailyActivity(userId)
+      await this.reviewLogRepository.save(
+        this.reviewLogRepository.create({
+          user: { id: userId },
+          card: { card_id },
+          rating,
+          reviewed_at: now
+        })
+      )
+      return savedReview
+    }
+
+    async updateDailyActivity(userId: number) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+    
+      const existing = await this.dailyActivityRepository.findOne({
+        where: {
+          user: { id: userId },
+          date: today,
+        },
+      });
+    
+      if (!existing) {
+        const activity = this.dailyActivityRepository.create({
+          user: { id: userId },
+          date: today,
+        });
+        await this.dailyActivityRepository.save(activity);
+      }
+    }
+    
 }

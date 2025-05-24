@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { Card } from '../../cards/entities/card.entity'; // Import entity Card
+import { User } from 'src/users/entities';
 
 @Entity('sets') // Tên bảng trong cơ sở dữ liệu là 'sets'
 export class Set {
@@ -15,4 +16,8 @@ export class Set {
   // Mối quan hệ một-đến-nhiều với Card
   @OneToMany(() => Card, (card) => card.set)
   cards: Card[]; // Mảng các Card thuộc Set này
+
+  @ManyToOne(() => User, (user) => user.sets, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 }
