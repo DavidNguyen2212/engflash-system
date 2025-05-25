@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards";
 import { CurrentUser } from "../auth/decorators";
 import { NotificationsService } from "./notifications.service";
+import { UpdateSetDTO } from "./dto";
 
 
 @ApiTags('notifications')
@@ -11,40 +12,25 @@ import { NotificationsService } from "./notifications.service";
 @Controller('notifications')
 export class NotificationsController {
     constructor(private readonly notificationsService: NotificationsService) {}
-
     // Private route to add word to a default topic
 
 
     // Learning
-    @Get('streak')
-    @ApiOperation({ summary: `Get current user's streak` })
+    @Patch('admin/sets/:setId')
+    @ApiOperation({ summary: `Modify sets: admin priviledge` })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
-    async getStreakLength(@CurrentUser() user) {
-        return this.notificationsService.getStreakLengthByUser(user.id)
-    }
-
-    @Get('proficient-cards')
-    @ApiOperation({ summary: 'Get statistics about total & proficient cards' })
-    @ApiResponse({ status: 201, description: 'Successfully' })
-    @ApiResponse({ status: 400, description: 'Bad request' })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
-    async getCardStats(
+    @ApiParam({ name: 'setId', type: Number})
+    async getStreakLength(
         @CurrentUser() user,
+        @Param('setId', ParseIntPipe) setId: number,
+        @Body() body: UpdateSetDTO,
     ) {
-        return this.notificationsService.getCardStatsByUser(user.id)
-    }
+        const updatedSet = await this.notificationsService.updateSetAdmin(setId, body);
+        await this.notificationsService.notifySetUpdated(setId, updatedSet);
 
-    @Get('learning-status')
-    @ApiOperation({ summary: 'Get statistics about 4 types of card: chưa học, đang học, đã học, đã ôn' })
-    @ApiResponse({ status: 201, description: 'Successfully' })
-    @ApiResponse({ status: 400, description: 'Bad request' })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
-    async getCardStatusStats(
-        @CurrentUser() user,
-    ) {
-        return this.notificationsService.getCardStatusStatsByUser(user.id)
+        return updatedSet;
     }
 
 }

@@ -2,6 +2,7 @@ import { Card, Topic, Set } from '../../cards/entities';
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { UserCardReview } from '../../cards/entities';
 import { UserDailyActivity } from 'src/statistics/entities';
+import { Notification } from 'src/notifications/entities';
 
 @Entity('users')
 export class User {
@@ -69,4 +70,7 @@ export class User {
 
     @OneToMany(() => UserDailyActivity, (activity) => activity.user)
     dailyActivities: UserDailyActivity[];
+
+    @OneToMany(() => Notification, (notif) => notif.user)
+    notifications: Notification[];
 }

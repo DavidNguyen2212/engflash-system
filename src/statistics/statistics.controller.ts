@@ -48,7 +48,7 @@ export class StatisticsController {
     }
 
     @Get('weekly-and-5days')
-    @ApiOperation({ summary: 'Get statistics about 4 types of card: chưa học, đang học, đã học, đã ôn' })
+    @ApiOperation({ summary: 'Get statistics for bar charts: week days and last 5 days' })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -56,23 +56,6 @@ export class StatisticsController {
         @CurrentUser() user,
     ) {
         return this.statisticsService.getCardStatusLongTimeByUser(user.id)
-    }
-
-
-
-   
-    // Revision
-    @Get(':topicId/revision-cards')
-    @ApiOperation({ summary: 'Get all cards needs to revise from a single topic' })
-    @ApiResponse({ status: 201, description: 'Successfully' })
-    @ApiResponse({ status: 400, description: 'Bad request' })
-    @ApiResponse({ status: 401, description: 'Unauthorized' })
-    @ApiParam({ name: 'topicId', required: true, type: Number})
-    async getCardRevisionTopic(
-        @CurrentUser() user,
-        @Param('topicId', ParseIntPipe) topicId: number
-    ) {
-        return this.statisticsService.reviseTopicCards(user.id, topicId)
     }
 
 }

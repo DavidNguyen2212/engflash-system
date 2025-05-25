@@ -40,12 +40,12 @@ export class SetsController {
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
-    @ApiQuery({ name: 'set_id', required: true, type: Number})
+    @ApiQuery({ name: 'setId', required: true, type: Number})
     async getCardRevisionSet(
         @CurrentUser() user,
-        @Param('set_id', ParseIntPipe) set_id: number
+        @Param('setId', ParseIntPipe) setId: number
     ) {
-        return this.setsService.reviseSetCards(user.id, set_id)
+        return this.setsService.reviseSetCards(user.id, setId)
     }
 
 }
