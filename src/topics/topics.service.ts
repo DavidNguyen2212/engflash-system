@@ -5,7 +5,6 @@ import { access, mkdir, readFile, writeFile } from 'fs/promises';
 import { Card, Topic, UserCardReview } from 'src/cards/entities';
 import { YoutubeTranscript } from 'youtube-transcript';
 import { v2 as cloudinary } from 'cloudinary';
-import {google, youtube_v3} from 'googleapis'
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { User } from 'src/users/entities';
