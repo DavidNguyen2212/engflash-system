@@ -51,7 +51,7 @@ export class CardsController {
     }
 
     @Post('grammar')
-    @ApiOperation({ summary: 'Call this to get the grammar of a card.' })
+    @ApiOperation({ summary: 'Get the grammar of a card (if not presented).' })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -64,7 +64,7 @@ export class CardsController {
 
     // Learn from video
     @Post('meaning')
-    @ApiOperation({ summary: 'Call this to get the meaning of a single word in the transcript.' })
+    @ApiOperation({ summary: 'Get the meaning of a single word in the transcript.' })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -76,7 +76,7 @@ export class CardsController {
     }
 
     @Delete()
-    @ApiOperation({ summary: 'Call this to drop a card.' })
+    @ApiOperation({ summary: 'Drop a card.' })
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })

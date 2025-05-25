@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, IsNull } from 'typeorm';
+import { Repository, DataSource, IsNull, LessThanOrEqual } from 'typeorm';
 import { Set } from './entities';
-import { Card } from 'src/cards/entities';
+import { Card, UserCardReview } from 'src/cards/entities';
 import { User } from 'src/users/entities';
 
 @Injectable()
@@ -15,6 +15,8 @@ export class SetsService {
         private userRepository: Repository<User>,
         @InjectRepository(Set)
         private setRepository: Repository<Set>,
+        @InjectRepository(UserCardReview)
+        private reviewRepository: Repository<UserCardReview>,
     ) { }
 
     async getAllSetsByUser(user_id: string) {
@@ -92,69 +94,36 @@ export class SetsService {
           .getMany()
       
       return { cards }
-  }
-
-    async createMultipleChoice(words: string, meaning: string) {
-        return ["Dummy 1", "Dummy 2", meaning]
-    }
-    async reviseTopicCards(user_id: string, topic_id: number) {
-        const cards = await this.cardRepository.find({
-            where: {
-              topic: {topic_id},
-              user: {
-                id: parseInt(user_id),
-              },
-            },
-            // relations: ['user'],
-        });
-
-        if (!cards) {
-            throw new NotFoundException(`Card belonging topic ${topic_id} not found or does not belong to user ${user_id}`);
-        }
-
-        const deck = await Promise.all(
-            cards.map(async (card) => ({
-              card,
-              choices: await this.createMultipleChoice(card.front_text, card.back_text),
-            })),
-          );
-
-        return deck
     }
 
-    async reviseSetCards(user_id: string, set_id: number) {
-        const cards = await this.cardRepository.find({
-            where: {
-              set: {set_id},
-              user: {
-                id: parseInt(user_id),
-              },
-            },
-            // relations: ['user'],
-        });
-
-        if (!cards) {
-            throw new NotFoundException(`Card belonging topic ${set_id} not found or does not belong to user ${user_id}`);
-        }
-
-        const deck = await Promise.all(
-            cards.map(async (card) => ({
-              card,
-              choices: await this.createMultipleChoice(card.front_text, card.back_text),
-            })),
-          );
-
-        return deck
-    }
+    async reviseSetCards(userId: string, setId: number) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Để so sánh chính xác đến ngày
     
-    async getSingleMeaning(word: string) {
-      // OpenAI implementation
-      // Get the backtext (vietnamese meaning) and example
-      return {
-        front_text: word,
-        back_text: "Con lợn",
-        example: "He is a pig in the kitchen."
+      const cardsToReview = await this.reviewRepository.find({
+        where: {
+          user: { id: Number(userId) },
+          card: {
+            set: { set_id: setId },
+          },
+          next_review_date: LessThanOrEqual(today),
+        },
+        relations: ['card', 'choices'],
+      });
+
+      if (!cardsToReview || cardsToReview.length === 0) {
+        throw new NotFoundException(
+          `No cards to review in topic ${setId} for user ${userId}`,
+        );
       }
+
+      const deck = cardsToReview.map((review) => ({
+        card: review.card,
+        choices: review.choices.map((c) => Object({key: c.text, value: c.isCorrect})), // from DB, no need OpenAI anymore
+      }));
+
+      return deck;
     }
+
 
 }

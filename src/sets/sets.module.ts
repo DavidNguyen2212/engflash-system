@@ -4,12 +4,14 @@ import { Set } from "./entities"
 import { SetsController } from "./sets.controller";
 import { SetsService } from "./sets.service";
 import { CardsModule } from "src/cards/cards.module";
-import { Card } from "src/cards/entities";
+import { Card, UserCardReview } from "src/cards/entities";
 import { User } from "src/users/entities";
+import { SharedModule } from "src/shared/shared.module";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Set, Card, User]),
-        forwardRef(() => CardsModule)
+    imports: [TypeOrmModule.forFeature([Set, Card, User, UserCardReview]),
+        forwardRef(() => CardsModule),
+        SharedModule
     ],
     controllers: [SetsController],
     providers: [SetsService],
