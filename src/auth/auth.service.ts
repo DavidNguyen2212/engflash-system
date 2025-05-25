@@ -43,27 +43,27 @@ import {
         throw new UnauthorizedException('Invalid credentials');
       }
   
-      if (!user.isEmailVerified) {
-        // Generate new verification code
-        const verificationCode = this.generateVerificationCode();
-        const verificationCodeExpiresAt = this.getVerificationCodeExpiry();
+      // if (!user.isEmailVerified) {
+      //   // Generate new verification code
+      //   const verificationCode = this.generateVerificationCode();
+      //   const verificationCodeExpiresAt = this.getVerificationCodeExpiry();
   
-        // Update user with new verification code
-        await this.usersService.update(user.id, {
-          verificationCode,
-          verificationCodeExpiresAt,
-        });
+      //   // Update user with new verification code
+      //   await this.usersService.update(user.id, {
+      //     verificationCode,
+      //     verificationCodeExpiresAt,
+      //   });
   
-        // Send new verification code
-        await this.emailService.sendVerificationCode(
-          user.email,
-          verificationCode,
-        );
+      //   // Send new verification code
+      //   await this.emailService.sendVerificationCode(
+      //     user.email,
+      //     verificationCode,
+      //   );
   
-        return {
-          requiresVerification: true,
-        };
-      }
+      //   return {
+      //     requiresVerification: true,
+      //   };
+      // }
   
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
   
