@@ -4,17 +4,31 @@ import { Repository, DataSource, IsNull, LessThanOrEqual } from 'typeorm';
 import { access, mkdir, readFile, writeFile } from 'fs/promises';
 import { Card, Topic, UserCardReview } from 'src/cards/entities';
 import { YoutubeTranscript } from 'youtube-transcript';
-import { decode } from 'html-entities';
-import { join } from 'path';
 import { v2 as cloudinary } from 'cloudinary';
+import {google, youtube_v3} from 'googleapis'
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
 import axios from 'axios';
 import { User } from 'src/users/entities';
 import { OpenAIService } from 'src/shared/services/openai.service';
+import { decode } from 'html-entities';
+
+
+interface CaptionTrack {
+  id: string;
+  name: { simpleText: string };
+  languageCode: string;
+  baseUrl: string;
+}
+
+interface TranscriptItem {
+  text: string;
+  start: number;
+  duration: number;
+}
 
 @Injectable()
 export class TopicsService {
+
     constructor(
         private dataSource: DataSource,
         @InjectRepository(Card)
@@ -26,7 +40,7 @@ export class TopicsService {
         @InjectRepository(Topic)
         private topicRepository: Repository<Topic>,
         private configService: ConfigService,
-        private openaiService: OpenAIService
+        private openaiService: OpenAIService,
     ) { 
 
       cloudinary.config({
@@ -118,7 +132,7 @@ export class TopicsService {
         return { cards }
     }
 
-    async createTranscriptFromVideo(url: string) {
+    async createTranscriptFromVideo2(url: string) {
       // 1. Extract video ID
       const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)
       if (!match) 
@@ -166,6 +180,7 @@ export class TopicsService {
       }
     }
 
+    
     
 
     async createTopicFromTranscript(user_id: string, url: string, level: string) {
@@ -248,4 +263,228 @@ export class TopicsService {
     }
 
 
+    async createTranscriptFromVideo(url: string) {
+      // 1. Extract video ID
+      const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+      if (!match) {
+        throw new BadRequestException('Invalid YouTube URL');
+      }
+      const videoId = match[1];
+  
+      try {
+        // 2. Get caption tracks using YouTube API v3
+        const captionTracks = await this.getCaptionTracks(videoId);
+        
+        if (captionTracks.length === 0) {
+          throw new BadRequestException('No captions available for this video');
+        }
+  
+        // 3. Find English caption track (prefer auto-generated if manual not available)
+        const englishTrack = this.findBestEnglishTrack(captionTracks);
+        
+        if (!englishTrack) {
+          throw new BadRequestException('No English captions available');
+        }
+  
+        // 4. Fetch transcript content
+        const transcript = await this.fetchTranscriptContent(englishTrack.baseUrl);
+  
+        // 5. Build WebVTT content
+        const vttContent = this.buildWebVTT(transcript);
+  
+        // 6. Upload to cloudinary
+        const uploadResult: any = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              resource_type: 'raw',
+              public_id: `captions/${videoId}`,
+              overwrite: true,
+              format: 'vtt',
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result);
+            }
+          );
+          uploadStream.end(Buffer.from(vttContent, 'utf8'));
+        });
+  
+        return {
+          embedUrl: `https://www.youtube.com/embed/${videoId}`,
+          captionUrl: uploadResult.secure_url
+        };
+  
+      } catch (error) {
+        console.error('Error creating transcript:', error);
+        throw new BadRequestException(`Failed to create transcript: ${error.message}`);
+      }
+    }
+  
+    private async getCaptionTracks(videoId: string): Promise<CaptionTrack[]> {
+      // Method 1: Try YouTube API v3 first
+      // try {
+      //   const response = await fetch(
+      //     `https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${this.configService.get<string>("YOUTUBE_API_V3")}`
+      //   );
+        
+      //   if (!response.ok) {
+      //     throw new Error(`YouTube API error: ${response.status}`);
+      //   }
+  
+      //   const data = await response.json();
+        
+      //   if (data.items && data.items.length > 0) {
+      //     return data.items.map(item => ({
+      //       id: item.id,
+      //       name: { simpleText: item.snippet.name },
+      //       languageCode: item.snippet.language,
+      //       baseUrl: `https://www.googleapis.com/youtube/v3/captions/${item.id}?tfmt=ttml&key=${this.configService.get<string>("YOUTUBE_API_V3")}`
+      //     }));
+      //   }
+      // } catch (error) {
+      //   console.warn('YouTube API v3 failed, trying alternative method:', error.message);
+      // }
+  
+      // Method 2: Fallback to parsing video page (less reliable but works without API quota)
+      return this.getCaptionTracksFromVideoPage(videoId);
+    }
+  
+    private async getCaptionTracksFromVideoPage(videoId: string): Promise<CaptionTrack[]> {
+      try {
+        const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+  
+        const html = await response.text();
+        
+        // Extract caption tracks from the page
+        const captionRegex = /"captionTracks":\[(.*?)\]/;
+        const match = html.match(captionRegex);
+        
+        if (!match) {
+          return [];
+        }
+  
+        const captionTracksStr = `[${match[1]}]`;
+        const captionTracks = JSON.parse(captionTracksStr);
+        
+        return captionTracks.map(track => ({
+          id: track.languageCode,
+          name: { simpleText: track.name?.simpleText || track.languageCode },
+          languageCode: track.languageCode,
+          baseUrl: track.baseUrl
+        }));
+  
+      } catch (error) {
+        console.error('Failed to extract captions from video page:', error);
+        return [];
+      }
+    }
+  
+    private findBestEnglishTrack(tracks: CaptionTrack[]): CaptionTrack | null {
+      // Priority: manual English > auto-generated English > any English variant
+      const englishTracks = tracks.filter(track => 
+        track.languageCode.startsWith('en') || 
+        track.languageCode === 'en-US' ||
+        track.languageCode === 'en-GB'
+      );  
+
+      if (englishTracks.length === 0) {
+        return null;
+      }
+  
+      // Prefer manual captions over auto-generated
+      const manualTrack = englishTracks.find(track => 
+        !track.name.simpleText.toLowerCase().includes('auto')
+      );
+      
+      return manualTrack || englishTracks[0];
+    }
+  
+    private async fetchTranscriptContent(baseUrl: string): Promise<TranscriptItem[]> {
+      try {
+        const response = await fetch(baseUrl);
+        const xmlContent = await response.text();
+        
+        return this.parseTranscriptXML(xmlContent);
+      } catch (error) {
+        throw new Error(`Failed to fetch transcript content: ${error.message}`);
+      }
+    }
+  
+    private parseTranscriptXML(xmlContent: string): TranscriptItem[] {
+      const transcript: TranscriptItem[] = [];
+      
+      // Parse TTML or simple XML format
+      const textRegex = /<text[^>]*start="([^"]*)"[^>]*dur="([^"]*)"[^>]*>(.*?)<\/text>/g;
+      let match;
+  
+      while ((match = textRegex.exec(xmlContent)) !== null) {
+        const start = this.parseTimeToSeconds(match[1]);
+        const duration = this.parseTimeToSeconds(match[2]);
+        const text = decode(match[3].replace(/<[^>]*>/g, ''));
+  
+        transcript.push({
+          text: text.trim(),
+          start,
+          duration
+        });
+      }
+  
+      // If TTML parsing fails, try simpler format
+      if (transcript.length === 0) {
+        const simpleRegex = /<p[^>]*t="([^"]*)"[^>]*d="([^"]*)"[^>]*>(.*?)<\/p>/g;
+        
+        while ((match = simpleRegex.exec(xmlContent)) !== null) {
+          const start = parseFloat(match[1]) / 1000; // Convert ms to seconds
+          const duration = parseFloat(match[2]) / 1000;
+          const text = decode(match[3].replace(/<[^>]*>/g, ''));
+  
+          transcript.push({
+            text: text.trim(),
+            start,
+            duration
+          });
+        }
+      }
+  
+      return transcript;
+    }
+  
+    private parseTimeToSeconds(timeStr: string): number {
+      // Handle different time formats: "PT1.234S", "1.234s", or plain seconds
+      if (timeStr.startsWith('PT') && timeStr.endsWith('S')) {
+        return parseFloat(timeStr.slice(2, -1));
+      }
+      
+      if (timeStr.endsWith('s')) {
+        return parseFloat(timeStr.slice(0, -1));
+      }
+      
+      return parseFloat(timeStr);
+    }
+  
+    private buildWebVTT(transcript: TranscriptItem[]): string {
+      const vttLines = ["WEBVTT\n"];
+      
+      transcript.forEach(({ text, start, duration }) => {
+        const startMs = start * 1000;
+        const endMs = (start + duration) * 1000;
+        const decoded = decode(decode(text));
+        
+        const fmt = (ms: number) => 
+          new Date(ms).toISOString().substring(11, 23).replace('.', ',');
+        
+        vttLines.push(
+          `${fmt(startMs)} --> ${fmt(endMs)}`,
+          decoded,
+          ''
+        );
+      });
+      
+      return vttLines.join('\n');
+    }
+  
 }
