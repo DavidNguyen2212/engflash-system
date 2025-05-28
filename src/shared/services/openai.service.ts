@@ -101,9 +101,7 @@ Tôi cần bạn trích xuất ra những từ có cấp độ ${level}. Hãy tr
 
     try {
       const content = response.choices[0].message.content;
-      console.log(content)
       const data = JSON.parse(content ?? "");
-      console.log(data)
       return data
     } catch (err) {
       console.error('Error generating json content:', err);

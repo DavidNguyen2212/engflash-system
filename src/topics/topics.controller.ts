@@ -63,7 +63,7 @@ export class TopicsController {
         @CurrentUser() user,
         @Body() data: ProcessTranscriptDto
     ) {
-        return this.topicsService.createTopicFromTranscript(user.id, data.url, data.level)
+        return this.topicsService.createTopicFromTranscript(user.id, data.url, data.level, data.topic_name)
     }
    
     // Revision
