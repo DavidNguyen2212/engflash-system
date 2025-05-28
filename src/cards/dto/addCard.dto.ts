@@ -29,9 +29,9 @@ export class AddCardDTO {
         description: 'Topic that the word belongs to',
         example: 2,
     })
-    @IsOptional()
-    @IsNotEmpty({ message: "if topic_id, can't be null"})
-    topic_id: number
+    topic_id: number | null
+    // @IsOptional()
+    // @IsNotEmpty({ message: "if topic_id, can't be null"})
 }
 
 export class NewMeaningDTO {

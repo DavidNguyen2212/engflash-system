@@ -8,6 +8,7 @@ import OpenAI from 'openai';
 import { OpenAIService } from 'src/shared/services/openai.service';
 import { capitalizeFirstLetter } from '../utils/capitalizer.util'
 import { UserDailyActivity } from 'src/statistics/entities';
+import { User } from 'src/users/entities';
 
 @Injectable()
 export class CardsService {
@@ -19,6 +20,8 @@ export class CardsService {
         private topicRepository: Repository<Topic>,
         @InjectRepository(Set)
         private setRepository: Repository<Set>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
         @InjectRepository(UserCardReview)
         private reviewRepository: Repository<UserCardReview>,
         @InjectRepository(UserCardReviewChoice)
@@ -88,6 +91,15 @@ export class CardsService {
 
 
     async addCardtoTopic(user_id: string, payload: any) {
+      const user = await this.userRepository.findOne({
+        where: {
+          id: Number(user_id)
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User with ${user_id} not found!`);
+      }
         // Destructure và gán giá trị mặc định
         const { front_text = "", back_text = "", example = "", topic_id = null } = payload;
         
@@ -123,6 +135,7 @@ export class CardsService {
             topic_name: aiResult.topic_name,
             topic_description: aiResult.topic_description,
             is_default: false,
+            user: user
           });
 
           const newTopic = await this.topicRepository.save(preNewTopic);
