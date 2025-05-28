@@ -198,7 +198,17 @@ export class TopicsService {
     
     
 
-    async createTopicFromTranscript(user_id: string, url: string, level: string) {
+    async createTopicFromTranscript(user_id: string, url: string, level: string, topic_name: string) {
+      const user = await this.userRepository.findOne({
+        where: {
+          id: Number(user_id)
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User with ${user_id} not found!`);
+      }
+
       let vttContent: string;
       try {
         const response = await axios.get<string>(url, { responseType: 'text' });
@@ -217,9 +227,10 @@ export class TopicsService {
         // then batch insert to card
         return await this.dataSource.transaction(async manager => {
           const topic = manager.create(Topic, {
-            topic_name: results.topic,
+            topic_name: topic_name,
             topic_description: results.topic_description,
-            is_default: false
+            is_default: false,
+            user: user,
           })
           const savedTopic = await manager.save(topic)
 

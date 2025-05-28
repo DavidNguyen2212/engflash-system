@@ -27,4 +27,12 @@ export class ProcessTranscriptDto {
     @IsNotEmpty()
     @IsString()
     level: string;
+
+    @ApiProperty({
+      description: 'Topic name',
+      example: "Gold digger",
+    })
+    @IsNotEmpty()
+    @IsString()
+    topic_name: string;
   }
