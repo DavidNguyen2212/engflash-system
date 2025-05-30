@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards";
 import { CardsService } from "./cards.service";
@@ -75,16 +75,16 @@ export class CardsController {
         return this.cardsService.getSingleMeaning(newCardData)
     }
 
-    @Delete()
+    @Delete(':card_id')
     @ApiOperation({ summary: 'Drop a card.' })
-    @ApiResponse({ status: 201, description: 'Successfully' })
+    @ApiResponse({ status: 200, description: 'Successfully deleted' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
     async deleteCardByUser(
         @CurrentUser() user,
-        @Body() { card_id }: SimpleCardDTO
+        @Param('card_id', ParseIntPipe) cardId: number
     ) {
-        return this.cardsService.deleteCard(user.id, card_id)
+        return this.cardsService.deleteCard(user.id, cardId);
     }
 
 

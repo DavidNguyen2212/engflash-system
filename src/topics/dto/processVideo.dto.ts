@@ -13,8 +13,8 @@ export class ProcessVideoDto {
 
 export class ProcessTranscriptDto {
     @ApiProperty({
-      description: 'Youtube video url',
-      example: "https://www.youtube.com/watch?v=rxUm-2x-2dM",
+      description: 'Caption url',
+      example: "cloudinary url",
     })
     @IsNotEmpty()
     @IsString()

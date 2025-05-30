@@ -120,15 +120,21 @@ export class TopicsService {
     }
 
     async getAllCardsfromTopic(user_id: string, topic_id: number) {
-        const cards = await this.cardRepository
-            .createQueryBuilder('card')
-            .where('card.topic_id = :topic_id AND card.user_id = :user_id', {
-                topic_id,
-                user_id,
-            })
-            .getMany()
-        
-        return { cards }
+      const topic = await this.topicRepository.findOne({
+        where: {
+          topic_id: topic_id
+        },
+      });
+
+      const cards = await this.cardRepository
+          .createQueryBuilder('card')
+          .where('card.topic_id = :topic_id AND card.user_id = :user_id', {
+              topic_id,
+              user_id,
+          })
+          .getMany()
+      
+      return { cards, topic }
     }
 
     async createTranscriptFromVideo(url: string) {
@@ -195,9 +201,6 @@ export class TopicsService {
       return obj[videoId]
     }
 
-    
-    
-
     async createTopicFromTranscript(user_id: string, url: string, level: string, topic_name: string) {
       const user = await this.userRepository.findOne({
         where: {
@@ -212,7 +215,6 @@ export class TopicsService {
       let vttContent: string;
       try {
         const response = await axios.get<string>(url, { responseType: 'text' });
-        console.log("response", response.data);
         vttContent = response.data;
       } catch (err) {
         console.log(`Failed to fetch VTT from ${url}`, err);
@@ -221,7 +223,6 @@ export class TopicsService {
 
       try {
         const transcriptText = vttContent.split('\n').filter((line) => line && !line.includes("-->") && line != "WEBVTT").join(' ') 
-        console.log(transcriptText);
         const results = await this.openaiService.makeWordList(Number(user_id), transcriptText, level)
         // Insert into topic, get the new topic id
         // then batch insert to card
@@ -261,7 +262,7 @@ export class TopicsService {
 
     async reviseTopicCards(userId: string, topicId: number) {
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Để so sánh chính xác đến ngày
+      // today.setHours(0, 0, 0, 0); // Để so sánh chính xác đến ngày
     
       const cardsToReview = await this.reviewRepository.find({
         where: {

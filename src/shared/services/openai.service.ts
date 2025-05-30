@@ -133,7 +133,6 @@ Tránh trả về triple backticks.
       const content = response.choices[0].message.content;
 
       const data = JSON.parse(content ?? "");
-      console.log(data)
       return {
         vietnamese_meaning: data.vietnamese_meaning,
         example: data.example
@@ -175,7 +174,6 @@ Tránh trả về triple backticks.
       const content = response.choices[0].message.content;
 
       const data = JSON.parse(content ?? "");
-      console.log(data)
       return {
         ipa: data.ipa,
         vietnamese_meaning: data.vietnamese_meaning,
@@ -249,7 +247,6 @@ Tránh trả về triple backticks.
     try {
       const content = response.choices[0].message.content;
       const data = JSON.parse(content ?? "");
-      console.log(data)
       return {
         meaning: data.meaning,
       };

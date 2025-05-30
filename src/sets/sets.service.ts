@@ -85,6 +85,12 @@ export class SetsService {
     }
 
     async getAllCardsfromSet(user_id: string, set_id: number) {
+      const set = await this.setRepository.findOne({
+        where: {
+          set_id: set_id
+        },
+      });
+
       const cards = await this.cardRepository
           .createQueryBuilder('card')
           .where('card.set_id = :set_id AND card.user_id = :user_id', {
@@ -93,12 +99,12 @@ export class SetsService {
           })
           .getMany()
       
-      return { cards }
+      return { cards, set }
     }
 
     async reviseSetCards(userId: string, setId: number) {
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Để so sánh chính xác đến ngày
+      // today.setHours(0, 0, 0, 0); // Để so sánh chính xác đến ngày
     
       const cardsToReview = await this.reviewRepository.find({
         where: {
