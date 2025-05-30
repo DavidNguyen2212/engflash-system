@@ -1,9 +1,9 @@
 # Project Title
 
-<!-- VERSION BADGE --> ![version](https://img.shields.io/badge/version-0.0.11-blue.svg)
+<!-- VERSION BADGE --> ![version](https://img.shields.io/badge/version-0.0.12-blue.svg)
 ![version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 
-<!-- RELEASE BADGE --> [![release](https://img.shields.io/badge/release-0.0.11-green.svg)](https://github.com/DavidNguyen2212/engflash-system/releases/tag/0.0.11)
+<!-- RELEASE BADGE --> [![release](https://img.shields.io/badge/release-0.0.12-green.svg)](https://github.com/DavidNguyen2212/engflash-system/releases/tag/0.0.12)
 [![release](https://img.shields.io/badge/release-1.0.0-green.svg)](https://github.com/DavidNguyen2212/engflash-system/releases/tag/1.0.0)
 
 <p align="center">
