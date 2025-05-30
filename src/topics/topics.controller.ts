@@ -23,7 +23,6 @@ export class TopicsController {
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
     async getAllTopics(@CurrentUser() user) {
-        // console.log(user)
         return this.topicsService.getAllTopicsByUser(user.id)
     }
 

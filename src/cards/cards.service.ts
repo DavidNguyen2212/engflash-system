@@ -219,8 +219,11 @@ export class CardsService {
       }
       
       review.last_review_date = now
+      // review.next_review_date = new Date(
+      //   now.getTime() + review.interval * 24 * 60 * 60 * 1000
+      // )
       review.next_review_date = new Date(
-        now.getTime() + review.interval * 24 * 60 * 60 * 1000
+        now.getTime() + review.interval * 10 * 1000 // 10s mỗi lần ôn
       )
     
       const savedReview = await this.reviewRepository.save(review);

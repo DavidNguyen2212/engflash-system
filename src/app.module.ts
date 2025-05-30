@@ -26,7 +26,7 @@ import { NotificationsModule } from './notifications/notifications.module';
         database: configService.get('DATABASE_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
-        logging: true,
+        // logging: true,
         logger: 'advanced-console',
         retryAttempts: 5,
         retryDelay: 3000,

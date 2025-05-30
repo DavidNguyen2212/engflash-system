@@ -40,7 +40,7 @@ export class SetsController {
     @ApiResponse({ status: 201, description: 'Successfully' })
     @ApiResponse({ status: 400, description: 'Bad request' })
     @ApiResponse({ status: 401, description: 'Unauthorized' })
-    @ApiQuery({ name: 'setId', required: true, type: Number})
+    @ApiParam({ name: 'setId', required: true, type: Number})
     async getCardRevisionSet(
         @CurrentUser() user,
         @Param('setId', ParseIntPipe) setId: number
