@@ -1,1 +1,1 @@
-export * from './processVideo.dto'
+export * from './processVideo.dto';

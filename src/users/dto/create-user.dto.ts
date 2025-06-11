@@ -1,4 +1,12 @@
-import { IsString, IsEmail, IsOptional, IsDate, IsNumber, IsBoolean, IsEnum, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsDate,
+  IsNumber,
+  IsBoolean,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsString({ message: 'Tên phải là chuỗi ký tự.' })
@@ -45,6 +53,22 @@ export class CreateUserDto {
   passwordResetCode?: string;
 
   @IsOptional()
-  @IsDate({ message: 'Thời hạn mã đặt lại mật khẩu phải là định dạng ngày hợp lệ.' })
+  @IsNumber({}, { message: 'Số nỗ lực đặt mật khẩu sai' })
+  resetCodeAttempts?: number;
+
+  @IsOptional()
+  @IsBoolean({ message: 'Trạng thái xác thực email phải là giá trị boolean.' })
+  canResetPassword?: boolean;
+
+  @IsOptional()
+  @IsDate({
+    message: 'Thời hạn mã đặt lại mật khẩu phải là định dạng ngày hợp lệ.',
+  })
   passwordResetCodeExpiresAt?: Date;
+
+  @IsOptional()
+  @IsDate({
+    message: 'Thời hạn mã đặt lại mật khẩu phải là định dạng ngày hợp lệ.',
+  })
+  lastLogin?: Date;
 }

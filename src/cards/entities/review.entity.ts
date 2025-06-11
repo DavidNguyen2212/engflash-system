@@ -1,46 +1,54 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { Card } from "./card.entity";
-import { User } from "src/users/entities";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
+import { Card } from './card.entity';
+import { User } from '../../users/entities';
 
 @Entity('user_card_reviews')
 export class UserCardReview {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    // Quan hệ với User
-    @ManyToOne(() => User, (user) => user.cardReviews, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'user_id' })
-    user: User;
+  // Quan hệ với User
+  @ManyToOne(() => User, (user) => user.cardReviews, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
-    // Quan hệ với Card
-    @ManyToOne(() => Card, (card) => card.userReviews, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'card_id' })
-    card: Card;
+  // Quan hệ với Card
+  @ManyToOne(() => Card, (card) => card.userReviews, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'card_id' })
+  card: Card;
 
-    // Độ dễ của card đối với người dùng
-    @Column({ type: 'float', default: 2.5 })
-    ease_factor: number;
+  // Độ dễ của card đối với người dùng
+  @Column({ type: 'float', default: 2.5 })
+  ease_factor: number;
 
-    // Khoảng thời gian ôn tập (tính bằng ngày)
-    @Column({ type: 'integer', default: 0 })
-    interval: number;
+  // Khoảng thời gian ôn tập (tính bằng ngày)
+  @Column({ type: 'integer', default: 0 })
+  interval: number;
 
-    // Số lần ôn tập thành công liên tiếp
-    @Column({ type: 'integer', default: 0 })
-    repetitions: number;
+  // Số lần ôn tập thành công liên tiếp
+  @Column({ type: 'integer', default: 0 })
+  repetitions: number;
 
-    // Ngày ôn tập tiếp theo
-    @Column({ type: 'date', nullable: true })
-    next_review_date: Date;
+  // Ngày ôn tập tiếp theo
+  @Column({ type: 'date', nullable: true })
+  next_review_date: Date;
 
-    // Ngày ôn tập gần nhất
-    @Column({ type: 'date', nullable: true })
-    last_review_date: Date;
+  // Ngày ôn tập gần nhất
+  @Column({ type: 'date', nullable: true })
+  last_review_date: Date;
 
-    @OneToMany(() => UserCardReviewChoice, (choice) => choice.review, { cascade: true })
-    choices: UserCardReviewChoice[];
+  @OneToMany(() => UserCardReviewChoice, (choice) => choice.review, {
+    cascade: true,
+  })
+  choices: UserCardReviewChoice[];
 }
-
 
 @Entity('user_card_review_choices')
 export class UserCardReviewChoice {
@@ -53,7 +61,9 @@ export class UserCardReviewChoice {
   @Column({ default: false })
   isCorrect: boolean;
 
-  @ManyToOne(() => UserCardReview, (review) => review.choices, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserCardReview, (review) => review.choices, {
+    onDelete: 'CASCADE',
+  })
   review: UserCardReview;
 }
 

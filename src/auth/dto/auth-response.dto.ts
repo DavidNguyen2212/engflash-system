@@ -26,7 +26,12 @@ export class LoginResponseDto {
   @ApiProperty({
     description: 'JWT access token',
   })
-  access_token: string;
+  ef_ac_token: string;
+
+  @ApiProperty({
+    description: 'JWT refresh token',
+  })
+  ef_rf_token: string;
 
   @ApiProperty({
     description: 'Token expiration timestamp',

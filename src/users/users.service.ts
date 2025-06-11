@@ -11,6 +11,15 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
+  getPublicUserFields(user: User): Partial<User> {
+    return {
+      id: user.id,
+      name: user.name,
+      dateOfBirth: user.dateOfBirth,
+      email: user.email,
+      updatedAt: user.updatedAt,
+    };
+  }
   async create(createUserDto: CreateUserDto): Promise<User> {
     const user = this.usersRepository.create(createUserDto);
     return await this.usersRepository.save(user);
@@ -28,11 +37,25 @@ export class UsersService {
     return user;
   }
 
+  // Dùng khi tìm kiếm, check... (có thể user không tồn tại)
   async findById(id: number): Promise<User | null> {
     return await this.usersRepository.findOne({
       where: { id },
       select: ['id', 'name', 'dateOfBirth', 'email', 'updatedAt'],
     });
+  }
+
+  // Dùng khi expect USER PHẢI TỒN TẠI (update, delete)
+  async findByIdOrThrow(id: number): Promise<User> {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      select: ['id', 'name', 'dateOfBirth', 'email', 'updatedAt'],
+    });
+    
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+    return user;
   }
 
   async findByIds(ids: number[]): Promise<User[]> {
@@ -43,8 +66,12 @@ export class UsersService {
     });
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return await this.usersRepository.findOne({ where: { email } });
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    return user;
   }
 
   async findByEmailAndVerificationCode(
@@ -59,9 +86,10 @@ export class UsersService {
     });
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User | null> {
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+    await this.findByIdOrThrow(id)
     await this.usersRepository.update(id, updateUserDto);
-    return this.findById(id);
+    return this.findByIdOrThrow(id);
   }
 
   async remove(id: number): Promise<void> {

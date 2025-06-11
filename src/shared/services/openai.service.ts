@@ -13,11 +13,14 @@ export class OpenAIService {
     });
   }
 
-  async createMultipleChoice(word: string, correctMeaning: string): Promise<string[]> {
+  async createMultipleChoice(
+    word: string,
+    correctMeaning: string,
+  ): Promise<string[]> {
     const openai = new OpenAI({
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),
     });
-  
+
     const prompt = `
   Bạn là một trợ lý học tiếng Anh. Tôi cần bạn tạo câu hỏi trắc nghiệm để học từ vựng.
   
@@ -34,23 +37,26 @@ export class OpenAIService {
   
   **Không trả về giải thích, markdown, triple backticks.**
     `;
-  
+
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4', 
+        model: 'gpt-4',
         messages: [
-          { role: 'system', content: 'Bạn là một trợ lý học từ vựng tiếng Anh.' },
+          {
+            role: 'system',
+            content: 'Bạn là một trợ lý học từ vựng tiếng Anh.',
+          },
           { role: 'user', content: prompt },
         ],
         temperature: 0.7,
       });
-  
+
       const content = response.choices[0].message.content;
       const parsed = JSON.parse(content || '{}');
       if (!parsed.choices || !Array.isArray(parsed.choices)) {
         throw new Error('Invalid response format from OpenAI');
       }
-  
+
       return parsed.choices;
     } catch (err) {
       console.error('Error creating multiple choices:', err);
@@ -59,7 +65,7 @@ export class OpenAIService {
     }
   }
 
-   async makeWordList(user_id: number, script: string, level: string) {
+  async makeWordList(user_id: number, script: string, level: string) {
     const prompt = `
 Bạn là một trợ lý học tiếng Anh. Với đoạn script sau: 
 <Script>
@@ -101,8 +107,8 @@ Tôi cần bạn trích xuất ra những từ có cấp độ ${level}. Hãy tr
 
     try {
       const content = response.choices[0].message.content;
-      const data = JSON.parse(content ?? "");
-      return data
+      const data = JSON.parse(content ?? '');
+      return data;
     } catch (err) {
       console.error('Error generating json content:', err);
     }
@@ -132,16 +138,16 @@ Tránh trả về triple backticks.
     try {
       const content = response.choices[0].message.content;
 
-      const data = JSON.parse(content ?? "");
+      const data = JSON.parse(content ?? '');
       return {
         vietnamese_meaning: data.vietnamese_meaning,
-        example: data.example
+        example: data.example,
       };
     } catch (err) {
       console.error('Error generating json content:', err);
       return {
         vietnamese_meaning: null,
-        example: null
+        example: null,
       };
     }
   }
@@ -173,13 +179,13 @@ Tránh trả về triple backticks.
     try {
       const content = response.choices[0].message.content;
 
-      const data = JSON.parse(content ?? "");
+      const data = JSON.parse(content ?? '');
       return {
         ipa: data.ipa,
         vietnamese_meaning: data.vietnamese_meaning,
         example: data.example,
         topic_name: data.topic_name,
-        topic_description: data.topic_description
+        topic_description: data.topic_description,
       };
     } catch (err) {
       console.error('Error generating json content:', err);
@@ -188,12 +194,16 @@ Tránh trả về triple backticks.
         vietnamese_meaning: null,
         example: null,
         topic_name: null,
-        topic_description: null
+        topic_description: null,
       };
     }
   }
 
-  async generateAIGrammar(word: string, correctMeaning: string, example: string) {
+  async generateAIGrammar(
+    word: string,
+    correctMeaning: string,
+    example: string,
+  ) {
     const prompt = `
 Bạn là một trợ lý học tiếng Anh. Với từ/cụm từ sau: "${word}", nghĩa tiếng Việt của nó: "${correctMeaning}", và một ví dụ cơ bản: "${example}", hãy trả về kết quả ở định dạng markdown. Yêu cầu như sau:
 
@@ -246,14 +256,14 @@ Tránh trả về triple backticks.
 
     try {
       const content = response.choices[0].message.content;
-      const data = JSON.parse(content ?? "");
+      const data = JSON.parse(content ?? '');
       return {
         meaning: data.meaning,
       };
     } catch (err) {
       console.error('Error generating json content:', err);
       return {
-        meaning: null
+        meaning: null,
       };
     }
   }

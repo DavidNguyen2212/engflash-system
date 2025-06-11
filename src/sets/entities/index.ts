@@ -1,1 +1,1 @@
-export * from './set.entity'
+export * from './set.entity';

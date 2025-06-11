@@ -7,12 +7,16 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { LocalStrategy, JwtStrategy } from './strategies';
 import { SharedModule } from '../shared/shared.module';
+import { RolesModule } from 'src/role/role.module';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
     SharedModule,
+    RolesModule,
+    RedisModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),

@@ -12,6 +12,9 @@ import { StatisticsModule } from './statistics/statistics.module';
 import { TopicsModule } from './topics/topics.module';
 import { SetsModule } from './sets/sets.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { HealthModule } from './health/health.module';
+import { DataSource } from 'typeorm';
+import { v2 as cloudinary } from 'cloudinary';
 
 @Module({
   imports: [
@@ -25,8 +28,9 @@ import { NotificationsModule } from './notifications/notifications.module';
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
-        // logging: true,
+        migrations: ['src/database/migrations/*.ts'],
+        synchronize: false,
+        logging: true,
         logger: 'advanced-console',
         retryAttempts: 5,
         retryDelay: 3000,
@@ -39,14 +43,14 @@ import { NotificationsModule } from './notifications/notifications.module';
           connectionTimeoutMillis: 10000,
         },
       }),
-      inject: [ConfigService]
+      inject: [ConfigService],
     }),
     ConfigModule.forRoot({
-      isGlobal: true
+      isGlobal: true,
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', "captions"),
-      serveRoot: '/captions'
+      rootPath: join(__dirname, '..', 'captions'),
+      serveRoot: '/captions',
     }),
     UsersModule,
     AuthModule,
@@ -54,9 +58,19 @@ import { NotificationsModule } from './notifications/notifications.module';
     StatisticsModule,
     TopicsModule,
     SetsModule,
-    NotificationsModule
+    NotificationsModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {
+  constructor(private dataSource: DataSource, private configService: ConfigService) {
+    cloudinary.config({
+      cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
+      api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
+      api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
+    });
+  }
+
+}

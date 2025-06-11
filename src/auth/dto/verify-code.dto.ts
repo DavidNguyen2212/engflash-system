@@ -17,3 +17,11 @@ export class VerifyCodeDto {
   @Length(6, 6)
   code: string;
 }
+
+export class RefreshDTO {
+  @ApiProperty({
+    description: 'refresh token',
+  })
+  @IsString()
+  refreshToken: string;
+}
